@@ -1,63 +1,48 @@
 
-require 'src/display_helper'
 local RareData = require 'src/connection'
+require 'src/display_helper'
 
 --- Draws the Mode A display
 local function modeMainDisplay(dt)
     ui.pushDWriteFont("Default")
 
-    -- drawCurrentLapTime(650,655,70)
-    -- drawCurrentTime(20,670,50)
-    -- drawRPM()
-    -- drawInPit()
-
-    drawRexingDisplay1()
-    drawSpeed(445,305,70)
-    drawErsBar(750,739,475,65)
+    drawDisplayBackground()
+    drawOverlayBorders()
+    drawOverlayText()
     drawDisplayMode(-70,310,70)
     drawRacePosition(-10,310,70)
-    drawLapCount(700,305,70)
-    drawDelta(-25,420,80)
-    drawMguh(30,540,70)
-    drawMGUKRecovery(100,540,70)
-    drawGapDelta(-65,680,60)
-    drawLapsRemaining(45,680,60)
-    drawFuelRemaining(620,675,70)
-    drawLastLapFuelUse(590,675,70)
+    drawDRS(360,420,80,RareData)
+    drawSpeed(445,305,70)
+    drawLapCount(575,310,60)
 
-    drawCustomBorders()
+    drawDelta(-10,420,80)
+    drawBmig(695,425,70)
+    drawBrakeBias(585,425,70)
 
-    drawBestLapTime(65,790,80)
-    drawLastLapTime(640,790,80)
-
-    drawBrakeBias(590,420,80)
-    drawBmig(685,420,80)
-    drawEngineBrake(240,800,60)
-
-    drawText{
-        string = "LAP",
-        fontSize = 50,
-        xPos = 410,
-        yPos = 385,
-        xAlign = ui.Alignment.End,
-        yAlign = ui.Alignment.Center,
-        color = rgbm(1, 1, 1, 1),
-        margin = vec2(600,200)
-    }
-
-    ui.pushDWriteFont("Default;Weight=Black")
-
+    drawMguh(30,540,50)
+    drawMGUKRecovery(95,540,50)
     drawBrakes(670,650,0,50,275,45)
-    drawDRS(360,420,80)
+
+    drawGapDelta(-65,675,60)
+    drawLapsRemaining(45,675,60)
+    drawFuelRemaining(620,675,60)
+    drawLastLapFuelUse(585,675,60)
+
+    drawBestLapTime(85,790,75)
+    drawLastLapTime(645,790,75)
+
+    drawGear(335,455,180)
     drawTyreTC(360,535,215,125,85,85)
     drawTyreCoreTemp(225,405,215,125,80)
     drawMGUKDelivery(335,620,32)
-    ui.popDWriteFont()
-
-    drawGear(335,455,180)
     drawBatteryRemaining(240,710,60)
+    drawEngineBrake(240,800,60)
 
+    drawErsBar(750,739,475,65)
 
+    drawInPit()
+
+    ui.popDWriteFont()
 end
 
 --- Draws the Mode C display
@@ -292,16 +277,194 @@ local function modeBrakeMigration(dt)
     ui.popDWriteFont()
 end
 
-local listOfModes = {modeMainDisplay, modeBrakeBias, modeMgukDelivery, modeMgukRecovery, modeMguhMode, modeEngineBrake, modeBrakeMigration}
-local tempModeCount = 6
+local lastEntryDiff = ac.getCarPhysics(car.index).scriptControllerInputs[3]
+local lastMidDiff =  ac.getCarPhysics(car.index).scriptControllerInputs[4]
+local lastHispdDiff =  ac.getCarPhysics(car.index).scriptControllerInputs[5]
+local lastDiffMode = ac.getCarPhysics(car.index).scriptControllerInputs[6] or 0
+
+--- Draws the Mode H display
+local function modeDiff(dt)
+    ui.pushDWriteFont("Default;Weight=Bold")
+    local diffText = ""
+
+    if lastDiffMode == 0 then
+        diffText = "ENTRY"
+    elseif lastDiffMode == 1 then
+        diffText = "MID"
+    else
+        diffText = "HISPD"
+    end
+
+    display.rect {
+            pos = vec2(0, 0), 
+            size = vec2(1124, 1124),
+            color = rgbm(0, 0, 0, 1)
+        }
+
+    drawText{
+        string = "DIFF",
+        fontSize = 75,
+        xPos = 20,
+        yPos = 220,
+        xAlign = ui.Alignment.Start,
+        yAlign = ui.Alignment.Center,
+        margin = vec2(500, 550),
+        color = rgbm(0.95, 0.95, 0.95, 1)
+    }
+
+    ui.beginScale()
+    drawText{
+        string = diffText,
+        fontSize = 125,
+        xPos = 300,
+        yPos = 500,
+        xAlign = ui.Alignment.Center,
+        yAlign = ui.Alignment.Center,
+        margin = vec2(400, 550),
+        color = rgbm(0.95, 0.95, 0.95, 1)
+    }
+    ui.endScale(2)
+
+    ui.popDWriteFont()
+end
+
+local function modeDiffEntry(dt)
+    ui.pushDWriteFont("Default;Weight=Bold")
+    local entryDiff = math.round(ac.getCarPhysics(car.index).scriptControllerInputs[3]*100,0)
+
+    display.rect {
+            pos = vec2(0, 0), 
+            size = vec2(1124, 1124),
+            color = rgbm(0, 0, 0, 1)
+        }
+
+    drawText{
+        string = "ENTRY",
+        fontSize = 75,
+        xPos = 20,
+        yPos = 220,
+        xAlign = ui.Alignment.Start,
+        yAlign = ui.Alignment.Center,
+        margin = vec2(500, 550),
+        color = rgbm(0.95, 0.95, 0.95, 1)
+    }
+
+    ui.beginScale()
+    drawText{
+        string = entryDiff,
+        fontSize = 200,
+        xPos = 300,
+        yPos = 500,
+        xAlign = ui.Alignment.Center,
+        yAlign = ui.Alignment.Center,
+        margin = vec2(400, 550),
+        color = rgbm(0.95, 0.95, 0.95, 1)
+    }
+    ui.endScale(2)
+
+    ui.popDWriteFont()
+end
+
+local function modeDiffMid(dt)
+    ui.pushDWriteFont("Default;Weight=Bold")
+    local midDiff = math.round(ac.getCarPhysics(car.index).scriptControllerInputs[4]*100,0)
+
+    display.rect {
+            pos = vec2(0, 0), 
+            size = vec2(1124, 1124),
+            color = rgbm(0, 0, 0, 1)
+        }
+
+    drawText{
+        string = "MID",
+        fontSize = 75,
+        xPos = 20,
+        yPos = 220,
+        xAlign = ui.Alignment.Start,
+        yAlign = ui.Alignment.Center,
+        margin = vec2(500, 550),
+        color = rgbm(0.95, 0.95, 0.95, 1)
+    }
+
+    ui.beginScale()
+    drawText{
+        string = midDiff,
+        fontSize = 200,
+        xPos = 300,
+        yPos = 500,
+        xAlign = ui.Alignment.Center,
+        yAlign = ui.Alignment.Center,
+        margin = vec2(400, 550),
+        color = rgbm(0.95, 0.95, 0.95, 1)
+    }
+    ui.endScale(2)
+
+    ui.popDWriteFont()
+end
+
+local function modeDiffHispd(dt)
+    ui.pushDWriteFont("Default;Weight=Bold")
+    local hispdDiff = math.round(ac.getCarPhysics(car.index).scriptControllerInputs[5]*100,0)
+
+    display.rect {
+            pos = vec2(0, 0), 
+            size = vec2(1124, 1124),
+            color = rgbm(0, 0, 0, 1)
+        }
+
+    drawText{
+        string = "HISPD",
+        fontSize = 75,
+        xPos = 20,
+        yPos = 220,
+        xAlign = ui.Alignment.Start,
+        yAlign = ui.Alignment.Center,
+        margin = vec2(500, 550),
+        color = rgbm(0.95, 0.95, 0.95, 1)
+    }
+
+    ui.beginScale()
+    drawText{
+        string = hispdDiff,
+        fontSize = 200,
+        xPos = 300,
+        yPos = 500,
+        xAlign = ui.Alignment.Center,
+        yAlign = ui.Alignment.Center,
+        margin = vec2(400, 550),
+        color = rgbm(0.95, 0.95, 0.95, 1)
+    }
+    ui.endScale(2)
+
+    ui.popDWriteFont()
+end
+
+local listOfModes = {
+    modeMainDisplay,
+    modeBrakeBias,
+    modeMgukDelivery,
+    modeMgukRecovery,
+    modeMguhMode,
+    modeEngineBrake,
+    modeBrakeMigration,
+    modeDiff,
+    modeDiffEntry,
+    modeDiffMid,
+    modeDiffHispd
+}
+
+local tempModeCount = 10
 local currentMode = tonumber(ac.loadDisplayValue("displayMode", 1)) or 1
+
 local lastBrakeBias = car.brakeBias
 local lastMgukDelivery = car.mgukDelivery
 local lastMgukRecovery = car.mgukRecovery
 local lastMguhMode = car.mguhChargingBatteries
 local lastEngineBrake = car.currentEngineBrakeSetting
 local lastBmig = ac.getCarPhysics(car.index).scriptControllerInputs[1]
-local lastExtraCState = false
+
+local lastExtraFState = car.extraF
+
 local tempMode = 1
 local timer = 0
 local timerReset = 50
@@ -310,7 +473,7 @@ local timerReset = 50
 local function setDisplayMode()
     local _currentMode = currentMode
     -- Save the last main display
-    if car.extraC ~= lastExtraCState then
+    if car.extraF ~= lastExtraFState then
         _currentMode = _currentMode + 1
         if _currentMode > #listOfModes - tempModeCount then
             _currentMode = 1
@@ -319,7 +482,7 @@ local function setDisplayMode()
         currentMode = _currentMode
     end
 
-    lastExtraCState = car.extraC
+    lastExtraFState = car.extraF
 
     -- If either brake bias or mguk delivery is not the same from the last script update, then start a timer
     -- If the driver changes bb or mgukd, reset the timer
@@ -353,6 +516,26 @@ local function setDisplayMode()
         lastBmig = ac.getCarPhysics(car.index).scriptControllerInputs[1]
         timer = timerReset
         tempMode = 7
+        return tempMode
+    elseif lastDiffMode ~= ac.getCarPhysics(car.index).scriptControllerInputs[6] then
+        lastDiffMode = ac.getCarPhysics(car.index).scriptControllerInputs[6]
+        timer = timerReset
+        tempMode = 8
+        return tempMode
+    elseif lastEntryDiff ~= ac.getCarPhysics(car.index).scriptControllerInputs[3] then
+        lastEntryDiff = ac.getCarPhysics(car.index).scriptControllerInputs[3]
+        timer = timerReset
+        tempMode = 9
+        return tempMode
+    elseif lastMidDiff ~= ac.getCarPhysics(car.index).scriptControllerInputs[4] then
+        lastMidDiff = ac.getCarPhysics(car.index).scriptControllerInputs[4]
+        timer = timerReset
+        tempMode = 10
+        return tempMode
+    elseif lastHispdDiff ~= ac.getCarPhysics(car.index).scriptControllerInputs[5] then
+        lastHispdDiff = ac.getCarPhysics(car.index).scriptControllerInputs[5]
+        timer = timerReset
+        tempMode = 11
         return tempMode
     else
         if timer > 0 then
