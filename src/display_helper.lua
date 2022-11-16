@@ -57,7 +57,7 @@ function drawDRS(x,y,size,RareData)
                 drsColour = rgbm(0, 0.79, 0.17, 1)
             end
         else
-            drsColour = rgbm(0, 0.09, 0.09, 1)
+            drsColour = rgbm(0.09, 0.09, 0.09, 1)
         end
     end
 
