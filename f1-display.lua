@@ -1,5 +1,5 @@
 
-local RareData = require 'src/connection'
+local RAREDATA = require 'src/connection'
 require 'src/display_helper'
 
 --- Draws the Mode A display
@@ -11,7 +11,7 @@ local function modeMainDisplay(dt)
     drawOverlayText()
     drawDisplayMode(-70,310,70)
     drawRacePosition(-10,310,70)
-    drawDRS(360,420,80,RareData)
+    drawDRS(360,420,80,RAREDATA)
     drawSpeed(445,305,70)
     drawLapCount(575,310,60)
 
