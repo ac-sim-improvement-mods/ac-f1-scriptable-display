@@ -26,12 +26,12 @@ function drawText(textdraw)
 end
 
 --- Draws whether DRS is enabled and/or active
-function drawDRS(x,y,size,RAREDATA)
+function drawDRS(x,y,size,RareData)
     ui.pushDWriteFont("Default;Weight=Black")
 
-    local connected = RAREDATA.connected()
-    local drsEnabled = RAREDATA.drsEnabled()
-    local drsAvailable = RAREDATA.drsAvailable(car.index)
+    local connected = RareData.connected()
+    local drsEnabled = RareData.drsEnabled()
+    local drsAvailable = RareData.drsAvailable(car.index)
     local drsZone = car.drsAvailable
     local drsActive = car.drsActive
 

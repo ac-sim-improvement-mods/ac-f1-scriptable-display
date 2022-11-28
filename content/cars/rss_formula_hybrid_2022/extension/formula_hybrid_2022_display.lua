@@ -1,6 +1,80 @@
 
-local RAREDATA = require 'src/connection'
+local RareData = require 'rare/connection'
 require 'src/display_helper'
+
+local function drawLaunch()
+    ui.pushDWriteFont("Default;Weight=Bold")
+    local rpmColor = rgbm(0,0,0,1)
+    local rpmText = "RPM LOW"
+
+    if car.rpm > 10000 then
+        rpmColor = rgbm(1,0,0,1)
+        rpmText = "RPM HIGH"
+    elseif car.rpm >= 9300 and car.rpm < 10000 then
+        rpmColor = rgbm(0.79, 0.78, 0, 1)
+        rpmText = "RPM HIGH"
+    elseif car.rpm >= 8900 and car.rpm < 9300 then
+        rpmColor = rgbm(0.9,0,1,1)
+        rpmText = "RPM GOOD"
+    elseif car.rpm >= 8000 and car.rpm < 8800 then
+        rpmColor = rgbm(0.79, 0.78, 0, 1)
+        rpmText = "RPM LOW"
+    elseif car.rpm >= 7000 and car.rpm < 8000 then
+        rpmColor = rgbm(1,0,0,1)
+        rpmText = "RPM LOW"
+    end
+
+    display.rect{
+        pos = vec2(0, 0),  
+        size = vec2(350, 1024),
+        color = rgb.colors.black
+    }
+
+    display.rect{
+        pos = vec2(670, 0),  
+        size = vec2(1024, 1024),
+        color = rgb.colors.black
+    }
+
+
+
+    display.rect{
+        pos = vec2(0, 0),  
+        size = vec2(1024, 525),
+        color = rpmColor
+    }
+
+    display.rect{
+        pos = vec2(0, 0),  
+        size = vec2(70, 1024),
+        color = rpmColor
+    }
+
+    display.rect{
+        pos = vec2(954, 0),  
+        size = vec2(1024, 1024),
+        color = rpmColor
+    }
+
+    display.rect{
+        pos = vec2(0, 850),  
+        size = vec2(1024, 1024),
+        color = rpmColor
+    }
+
+    drawText{
+        string = rpmText,
+        fontSize = 125,
+        xPos = 170,
+        yPos = 655,
+        xAlign = ui.Alignment.Center,
+        yAlign = ui.Alignment.Center,
+        margin = vec2(700, 550),
+        color = rgbm(0.95, 0.95, 0.95, 1)
+    }
+
+    ui.popDWriteFont()
+end
 
 --- Draws the Mode A display
 local function modeMainDisplay(dt)
@@ -8,20 +82,21 @@ local function modeMainDisplay(dt)
 
     drawDisplayBackground()
     drawOverlayBorders()
+
     drawOverlayText()
     drawDisplayMode(-70,310,70)
     drawRacePosition(-10,310,70)
-    drawDRS(360,420,80,RAREDATA)
+    drawDRS(360,420,80,RareData)
     drawSpeed(445,305,70)
     drawLapCount(575,310,60)
 
     drawDelta(-10,420,80)
     drawBmig(695,425,70)
-    drawBrakeBias(585,425,70)
+
 
     drawMguh(30,540,50)
     drawMGUKRecovery(95,540,50)
-    drawBrakes(670,650,0,50,275,45)
+
 
     drawGapDelta(-65,675,60)
     drawLapsRemaining(45,675,60)
@@ -31,14 +106,23 @@ local function modeMainDisplay(dt)
     drawBestLapTime(85,790,75)
     drawLastLapTime(645,790,75)
 
-    drawGear(335,455,180)
-    drawTyreTC(360,535,215,125,85,85)
-    drawTyreCoreTemp(225,405,215,125,80)
-    drawMGUKDelivery(335,620,32)
     drawBatteryRemaining(240,710,60)
     drawEngineBrake(240,800,60)
 
     drawErsBar(750,739,475,65)
+
+    if not ac.getSim().isSessionStarted then
+        drawDisplayBackground()
+        drawLaunch()
+    end
+
+    drawBrakes(670,650,0,50,275,45)
+    drawBrakeBias(585,425,70)
+    drawGear(335,455,180)
+    drawTyreTC(360,535,215,125,85,85)
+    drawTyreCoreTemp(225,405,215,125,80)
+    drawMGUKDelivery(335,620,32)
+
 
     drawInPit()
 
