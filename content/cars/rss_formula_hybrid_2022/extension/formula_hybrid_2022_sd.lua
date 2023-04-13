@@ -74,9 +74,10 @@ local function updateData(dt)
 
 		if ac.getSim().isInMainMenu then
 			fuel.initial = car.fuel
+			fuel.remaining = car.fuel
 		end
 
-		if fuel.lapCount ~= car.lapCount and car.lapCount > 1 then
+		if fuel.lapCount ~= car.lapCount then
 			fuel.lapCount = car.lapCount
 			sdata.lastLapFuelUse = fuel.remaining - car.fuel
 			fuel.remaining = car.fuel
