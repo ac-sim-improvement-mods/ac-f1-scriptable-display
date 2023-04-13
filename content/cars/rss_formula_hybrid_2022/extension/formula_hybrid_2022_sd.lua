@@ -173,14 +173,6 @@ local function updateData(dt, sim)
 		end
 
 		sdata.wheels = car.wheels
-		sdata.brakeBiasActual = string.format(
-			"%.1f",
-			100
-				* (
-					ac.getCarPhysics(car.index).scriptControllerInputs[0] == 0 and car.brakeBias
-					or math.round(ac.getCarPhysics(car.index).scriptControllerInputs[0], 1)
-				)
-		)
 	end
 
 	delayFastest = delayFastest + dt
@@ -188,6 +180,15 @@ local function updateData(dt, sim)
 		delayFastest = 0
 		sdata.poweredWheelsSpeed = math.round(car.poweredWheelsSpeed)
 	end
+
+	sdata.brakeBiasActual = string.format(
+		"%.1f",
+		100
+			* (
+				ac.getCarPhysics(car.index).scriptControllerInputs[0] == 0 and car.brakeBias
+				or ac.getCarPhysics(car.index).scriptControllerInputs[0]
+			)
+	)
 
 	sdata.brakeBiasMigration = string.format("%0.f", ac.getCarPhysics(car.index).scriptControllerInputs[1] * 100 + 1)
 	sdata.differentialEntry = ac.getCarPhysics(car.index).scriptControllerInputs[3] == 0 and 1
