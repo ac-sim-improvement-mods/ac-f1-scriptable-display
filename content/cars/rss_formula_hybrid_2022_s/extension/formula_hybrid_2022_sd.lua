@@ -40,6 +40,7 @@ local backLightNight = vec3(1.8, 1.8, 1.8)
 local backLightDay = vec3(2.2, 2.2, 2.2)
 local backLight = backLightDay
 local backLightMesh = ac.findNodes("carsRoot:yes"):findMeshes("GEO_INT_Display")
+backLightMesh:setMaterialProperty("ksEmissive", backLight)
 
 local function updateDisplayBrightness(sim)
 	local brightnessUpdated = false
@@ -172,8 +173,14 @@ local function updateData(dt, sim)
 		end
 
 		sdata.wheels = car.wheels
-		sdata.brakeBiasActual =
-			string.format("%.1f", math.round(100 * ac.getCarPhysics(car.index).scriptControllerInputs[0], 1))
+		sdata.brakeBiasActual = string.format(
+			"%.1f",
+			100
+				* (
+					ac.getCarPhysics(car.index).scriptControllerInputs[0] == 0 and car.brakeBias
+					or math.round(ac.getCarPhysics(car.index).scriptControllerInputs[0], 1)
+				)
+		)
 	end
 
 	delayFastest = delayFastest + dt
@@ -183,9 +190,12 @@ local function updateData(dt, sim)
 	end
 
 	sdata.brakeBiasMigration = string.format("%0.f", ac.getCarPhysics(car.index).scriptControllerInputs[1] * 100 + 1)
-	sdata.differentialEntry = math.round(ac.getCarPhysics(car.index).scriptControllerInputs[3] / 9) + 1
-	sdata.differentialMid = math.round(ac.getCarPhysics(car.index).scriptControllerInputs[4] / 9) + 1
-	sdata.differentialHispd = math.round(ac.getCarPhysics(car.index).scriptControllerInputs[5] / 9) + 1
+	sdata.differentialEntry = ac.getCarPhysics(car.index).scriptControllerInputs[3] == 0 and 1
+		or math.round(ac.getCarPhysics(car.index).scriptControllerInputs[3] / 9) + 1
+	sdata.differentialMid = ac.getCarPhysics(car.index).scriptControllerInputs[4] == 0 and 4
+		or math.round(ac.getCarPhysics(car.index).scriptControllerInputs[4] / 9) + 1
+	sdata.differentialHispd = ac.getCarPhysics(car.index).scriptControllerInputs[5] == 0 and 5
+		or math.round(ac.getCarPhysics(car.index).scriptControllerInputs[5] / 9) + 1
 	sdata.differentialMode = ac.getCarPhysics(car.index).scriptControllerInputs[6]
 end
 
@@ -472,7 +482,9 @@ local function getDisplayMode(sim)
 		end
 	end
 
-	if showSplash and sim.isFocusedOnInterior then
+	if car.isAIControlled then
+		return _currentMode
+	elseif showSplash and sim.isFocusedOnInterior then
 		stored.splashShown = true
 		addTime(3)
 		tempMode = 11
@@ -480,8 +492,6 @@ local function getDisplayMode(sim)
 	elseif showSplash then
 		tempMode = 12
 		return tempMode
-	elseif car.isAIControlled or not stored.initialized then
-		return _currentMode
 	elseif car.clutch == 0 and car.speedKmh < 1 and not sim.isInMainMenu then
 		addTime()
 		tempMode = 10
