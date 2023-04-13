@@ -244,7 +244,7 @@ local function displayWarmup(dt)
 	drawValue(displayFont, sdata.differentialMid, 55, 56, 402, ui.Alignment.Center)
 	drawValue(displayFont, sdata.differentialHispd, 55, 165, 402, ui.Alignment.Center)
 
-	drawValue(displayFont, sdata.compoundName, 52, -152, 662, ui.Alignment.End)
+	drawValue(displayFontSemiBold, sdata.compoundName, 52, -152, 662, ui.Alignment.End)
 	drawValue(displayFont, sdata.currentTime, 52, 65, 805, ui.Alignment.Start, rgbm(1, 1, 0, 1))
 
 	drawBrakes(sdata, 57, 872, 0, 36, 142, 36)
