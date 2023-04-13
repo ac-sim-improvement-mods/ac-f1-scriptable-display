@@ -55,22 +55,42 @@ local mgukDeliveryShortNames = {
 	ac.getSim().raceSessionType == 3 and "ATTCK" or "QUAL",
 }
 
+local fuel = {
+	initial = car.fuel,
+	remaining = car.fuel,
+	lapCount = car.lapCount,
+}
+
 local function updateData(dt)
 	delaySlow = delaySlow + dt
 	if delaySlow > slowRefreshPeriod then
 		delaySlow = 0
 
-		sdata.position = getLeaderboardPosition(car.index)
-		sdata.racePosition = "P" .. car.racePosition
-
-		sdata.bestLapTimeMs = ac.lapTimeToString(car.bestLapTimeMs)
-		sdata.previousLapTimeMs = ac.lapTimeToString(car.previousLapTimeMs)
-		sdata.previousLapValidColor = car.isLastLapValid and displayColors.offWhite or displayColors.red
 		sdata.sessionLaps = ac.getSession(ac.getSim().currentSessionIndex).laps
 				and ac.getSession(ac.getSim().currentSessionIndex).laps
 			or "--"
 		sdata.lapCount = sdata.sessionLaps == 0 and tostring(car.lapCount + 1)
 			or tostring(car.lapCount + 1) .. "/" .. sdata.sessionLaps
+
+		if ac.getSim().isInMainMenu then
+			fuel.initial = car.fuel
+		end
+
+		if fuel.lapCount ~= car.lapCount then
+			fuel.lapCount = car.lapCount
+			sdata.lastLapFuelUse = fuel.remaining - car.fuel
+			fuel.remaining = car.fuel
+		end
+
+		sdata.targetFuelUse = sdata.sessionLaps == 0 and sdata.fuelPerLap or fuel.initial / sdata.sessionLaps
+		sdata.lastLapFuelUse = string.format("%.2f", sdata.lastLapFuelUse and sdata.lastLapFuelUse or 0)
+
+		sdata.position = getLeaderboardPosition(car.index)
+		sdata.racePosition = "P" .. car.racePosition
+		sdata.bestLapTimeMs = ac.lapTimeToString(car.bestLapTimeMs)
+		sdata.previousLapTimeMs = ac.lapTimeToString(car.previousLapTimeMs)
+		sdata.previousLapValidColor = car.isLastLapValid and displayColors.offWhite or displayColors.red
+
 		sdata.currentEngineBrakeSetting = car.currentEngineBrakeSetting
 		sdata.mgukRecovery = car.mgukRecovery
 		sdata.compoundIndex = car.compoundIndex
@@ -86,7 +106,6 @@ local function updateData(dt)
 		sdata.fuelPerLap = string.format("%.2f", car.fuelPerLap)
 		sdata.speedKmh = math.floor(car.speedKmh)
 		sdata.currentTime = string.format("%02d:%02d", sim.timeHours, sim.timeMinutes)
-		sdata.targetFuelUse = sdata.sessionLaps == 0 and sdata.fuelPerLap or 140 / sdata.sessionLaps
 
 		if sdata.batteryCharge >= 65 then
 			sdata.batteryChargeColor = displayColors.activeGreen
@@ -230,7 +249,7 @@ local function displayWarmup(dt)
 	drawTyrePressure(sdata, displayFontSemiBold, 67, 683, 534, 95, 38)
 
 	drawValue(displayFont, sdata.fuel, 52, 613, 662, ui.Alignment.End)
-	drawValue(displayFont, sdata.fuelPerLap, 52, 613, 737, ui.Alignment.End)
+	drawValue(displayFont, sdata.lastLapFuelUse, 52, 613, 737, ui.Alignment.End)
 	drawValue(displayFont, sdata.fuelPerLap, 52, 613, 814, ui.Alignment.End)
 
 	displayShared("src/display_warmup.png")
@@ -242,7 +261,7 @@ local function displayRace(dt)
 	drawValue(displayFont, sdata.gapToCarAhead, 65, 58, 800, ui.Alignment.Start)
 
 	drawValue(displayFont, sdata.fuel, 65, 613, 590, ui.Alignment.End)
-	drawValue(displayFont, sdata.fuelPerLap, 65, 613, 695, ui.Alignment.End)
+	drawValue(displayFont, sdata.lastLapFuelUse, 65, 613, 695, ui.Alignment.End)
 	drawValue(displayFont, sdata.targetFuelUse, 65, 613, 800, ui.Alignment.End)
 
 	displayShared("src/display_race.png")
@@ -333,6 +352,10 @@ end
 
 --endregion
 
+local function displayEmpty(dt)
+	drawDisplayBackground(displaySize, backgroundColor)
+end
+
 --endregion
 
 --region Display Switching
@@ -347,8 +370,9 @@ local displays = {
 	displayEngineBrake,
 	displayBmig,
 	displayDiff,
-	displaySplash,
 	displayLaunch,
+	displaySplash,
+	displayEmpty,
 }
 
 local mainDisplayCount = 2
@@ -408,15 +432,28 @@ local function getDisplayMode()
 	-- If either brake bias or mguk delivery is not the same from the last script update, then start a timer
 	-- If the driver changes bb or mgukd, reset the timer
 	-- This also takes care of showing both displays if both bb and mgukd are changed
-	if not stored.splashShown and ac.getSim().isFocusedOnInterior then
+	local showSplash = true
+	if stored.splashShown == true then
+		showSplash = false
+	else
+		if ac.getSim().raceSessionType == 3 and ac.getSim().isSessionStarted then
+			showSplash = false
+		end
+	end
+
+	if showSplash and ac.getSim().isFocusedOnInterior then
 		stored.splashShown = true
 		addTime(3)
-		tempMode = 10
-	elseif not stored.splashShown then
-		drawDisplayBackground(displaySize, backgroundColor)
+		tempMode = 11
+		return tempMode
+	elseif showSplash then
+		tempMode = 12
+		return tempMode
+	elseif car.isAIControlled then
+		return _currentMode
 	elseif car.clutch == 0 and car.speedKmh < 1 and not ac.getSim().isInMainMenu then
 		addTime()
-		tempMode = 11
+		tempMode = 10
 		return tempMode
 	elseif lastBrakeBias ~= car.brakeBias then
 		lastBrakeBias = car.brakeBias
@@ -495,7 +532,7 @@ function script.update(dt)
 
 	updateData(dt)
 	drawDisplayBackground(displaySize, backgroundColor)
-	displays[getDisplayMode() or 1](dt)
+	displays[getDisplayMode()](dt)
 	drawDisplayBackground(displaySize, rgbm(0, 0, 0, 0.2))
 
 	-- drawGridLines()
