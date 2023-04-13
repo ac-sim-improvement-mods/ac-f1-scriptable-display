@@ -76,13 +76,14 @@ local function updateData(dt)
 			fuel.initial = car.fuel
 		end
 
-		if fuel.lapCount ~= car.lapCount then
+		if fuel.lapCount ~= car.lapCount and car.lapCount > 1 then
 			fuel.lapCount = car.lapCount
 			sdata.lastLapFuelUse = fuel.remaining - car.fuel
 			fuel.remaining = car.fuel
 		end
 
-		sdata.targetFuelUse = sdata.sessionLaps == 0 and sdata.fuelPerLap or fuel.initial / sdata.sessionLaps
+		sdata.targetFuelUse =
+			string.format("%.2f", sdata.sessionLaps == 0 and sdata.fuelPerLap or fuel.initial / sdata.sessionLaps)
 		sdata.lastLapFuelUse = string.format("%.2f", sdata.lastLapFuelUse and sdata.lastLapFuelUse or 0)
 
 		sdata.position = getLeaderboardPosition(car.index)
