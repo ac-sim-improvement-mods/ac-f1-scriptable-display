@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- Initial code idea developed from Ilja's scriptable display example
 
 require("src/formula_display")
@@ -6,9 +7,11 @@ require("src/formula_display")
 local stored = ac.storage({
 	activeDisplay = 1, -- Index of active display (starting with 1)
 	splashShown = false,
+	initialized = false,
 })
 
 stored.splashShown = false
+stored.initialized = false
 
 --region Display Constants
 
@@ -32,6 +35,28 @@ local displayFontBlack = ui.DWriteFont(displayFontName):weight(ui.DWriteFont.Wei
 local displayFontSemiBold = ui.DWriteFont(displayFontName):weight(ui.DWriteFont.Weight.SemiBold)
 
 --endregion
+
+local backLightNight = vec3(1.8, 1.8, 1.8)
+local backLightDay = vec3(2.2, 2.2, 2.2)
+local backLight = backLightDay
+local backLightMesh = ac.findNodes("carsRoot:yes"):findMeshes("GEO_INT_Display")
+
+local function updateDisplayBrightness(sim)
+	local brightnessUpdated = false
+	if sim.ambientLightingMultiplier >= 1.25 and backLight == backLightDay then
+		brightnessUpdated = true
+		backLight = backLightNight
+		-- ac.log("DISPLAY_BACKLIGHT-NIGHT")
+	elseif sim.ambientLightingMultiplier < 1.25 and backLight == backLightNight then
+		brightnessUpdated = true
+		backLight = backLightDay
+		-- ac.log("DISPLAY_BACKLIGHT=DAY")
+	end
+
+	if brightnessUpdated then
+		backLightMesh:setMaterialProperty("ksEmissive", backLight)
+	end
+end
 
 --region Data Collection and Formatting
 
@@ -61,18 +86,17 @@ local fuel = {
 	lapCount = car.lapCount,
 }
 
-local function updateData(dt)
+local function updateData(dt, sim)
 	delaySlow = delaySlow + dt
 	if delaySlow > slowRefreshPeriod then
 		delaySlow = 0
 
-		sdata.sessionLaps = ac.getSession(ac.getSim().currentSessionIndex).laps
-				and ac.getSession(ac.getSim().currentSessionIndex).laps
+		sdata.sessionLaps = ac.getSession(sim.currentSessionIndex).laps and ac.getSession(sim.currentSessionIndex).laps
 			or "--"
 		sdata.lapCount = sdata.sessionLaps == 0 and tostring(car.lapCount + 1)
 			or tostring(car.lapCount + 1) .. "/" .. sdata.sessionLaps
 
-		if ac.getSim().isInMainMenu then
+		if sim.isInMainMenu then
 			fuel.initial = car.fuel
 			fuel.remaining = car.fuel
 		end
@@ -126,10 +150,10 @@ local function updateData(dt)
 		sdata.performanceMeter = string.format("%.2f", math.clamp(car.performanceMeter, -99.99, 99.99))
 		sdata.carAheadIndex = getCarAheadIndex(car.index)
 		sdata.gapToCarAhead = car.racePosition > 1
-				and string.format("%.2f", ac.getGapBetweenCars(car.index, sdata.carAheadIndex))
+				and string.format("%.2f", math.clamp(ac.getGapBetweenCars(car.index, sdata.carAheadIndex), 0, 99.99))
 			or "-:---"
 
-		if not ac.getSim().isSessionStarted then
+		if not sim.isSessionStarted then
 			sdata.gapToCarAhead = "-:---"
 		end
 
@@ -414,8 +438,13 @@ local function resetLastStates()
 end
 
 --- Switches to a temporary display if the conditions are met
-local function getDisplayMode()
-	if ac.getSim().isInMainMenu then
+local function getDisplayMode(sim)
+	if not stored.initialized then
+		stored.initialized = true
+		resetLastStates()
+	end
+
+	if sim.isInMainMenu then
 		resetLastStates()
 	end
 
@@ -438,12 +467,12 @@ local function getDisplayMode()
 	if stored.splashShown == true then
 		showSplash = false
 	else
-		if ac.getSim().raceSessionType == 3 and ac.getSim().isSessionStarted then
+		if sim.raceSessionType == 3 and sim.isSessionStarted then
 			showSplash = false
 		end
 	end
 
-	if showSplash and ac.getSim().isFocusedOnInterior then
+	if showSplash and sim.isFocusedOnInterior then
 		stored.splashShown = true
 		addTime(3)
 		tempMode = 11
@@ -451,9 +480,9 @@ local function getDisplayMode()
 	elseif showSplash then
 		tempMode = 12
 		return tempMode
-	elseif car.isAIControlled then
+	elseif car.isAIControlled or not stored.initialized then
 		return _currentMode
-	elseif car.clutch == 0 and car.speedKmh < 1 and not ac.getSim().isInMainMenu then
+	elseif car.clutch == 0 and car.speedKmh < 1 and not sim.isInMainMenu then
 		addTime()
 		tempMode = 10
 		return tempMode
@@ -532,9 +561,12 @@ function script.update(dt)
 
 	dt = dt * 3
 
-	updateData(dt)
+	local sim = ac.getSim()
+
+	updateData(dt, sim)
+	updateDisplayBrightness(sim)
 	drawDisplayBackground(displaySize, backgroundColor)
-	displays[getDisplayMode()](dt)
+	displays[getDisplayMode(sim)](dt)
 	drawDisplayBackground(displaySize, rgbm(0, 0, 0, 0.2))
 
 	-- drawGridLines()
