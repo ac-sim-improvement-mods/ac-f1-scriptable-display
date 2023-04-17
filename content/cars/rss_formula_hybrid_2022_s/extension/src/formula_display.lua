@@ -538,8 +538,8 @@ end
 function drawBrakes(slow, x, y, xGap, yGap, xSize, ySize, coolColor, optimumColor, hotColor)
 	ui.pushDWriteFont("Default;Weight=Black")
 	local lowBrakeTemp = 300
-	local optimumBrakeTemp = 300
-	local highBrakeTemp = 300
+	local optimumBrakeTemp = 450
+	local highBrakeTemp = 1000
 
 	display.rect({
 		pos = vec2(x, y),
