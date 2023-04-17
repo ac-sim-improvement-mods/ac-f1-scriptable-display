@@ -60,20 +60,21 @@ backLightMesh:setMaterialProperty("ksEmissive", backLight)
 
 local function updateDisplayBrightness(sim)
 	local brightnessUpdated = false
+	local isNightTime = ac.getSunAngle() >= 90
 	local isFPVorF7 = sim.cameraMode == 0 or sim.cameraMode == 6
 
-	if isFPVorF7 and sim.ambientLightingMultiplier >= 1.25 and backLight ~= backLightNight then
+	if isFPVorF7 and isNightTime and backLight ~= backLightNight then
 		brightnessUpdated = true
 		backLight = backLightNight
 		-- ac.log("DISPLAY_BACKLIGHT-NIGHT")
-	elseif not isFPVorF7 and sim.ambientLightingMultiplier >= 1.25 and backLight ~= backLightNightNotFPV then
+	elseif not isFPVorF7 and isNightTime and backLight ~= backLightNightNotFPV then
 		brightnessUpdated = true
 		backLight = backLightNightNotFPV
-	elseif isFPVorF7 and sim.ambientLightingMultiplier < 1.25 and backLight ~= brightnessDay then
+	elseif isFPVorF7 and not isNightTime and backLight ~= brightnessDay then
 		brightnessUpdated = true
 		backLight = backLightDay
 		-- ac.log("DISPLAY_BACKLIGHT=DAY")
-	elseif not isFPVorF7 and sim.ambientLightingMultiplier < 1.25 and backLight ~= backLightDayNotFPV then
+	elseif not isFPVorF7 and not isNightTime and backLight ~= backLightDayNotFPV then
 		brightnessUpdated = true
 		backLight = backLightDayNotFPV
 	end
@@ -118,6 +119,8 @@ local function updateData(dt, sim)
 	delaySlow = delaySlow + dt
 	if delaySlow > slowRefreshPeriod then
 		delaySlow = 0
+
+		ac.log(ac.getSunAngle())
 
 		-- Session data
 		sdata.currentTime = string.format("%02d:%02d", sim.timeHours, sim.timeMinutes)
