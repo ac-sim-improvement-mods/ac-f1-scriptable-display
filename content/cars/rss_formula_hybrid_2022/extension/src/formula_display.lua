@@ -33,8 +33,8 @@ function displayPopup(text, value, color)
 
 	-- Black inner background
 	display.rect({
-		pos = vec2(20, 520),
-		size = vec2(990, 492),
+		pos = vec2(22, 520),
+		size = vec2(978, 484),
 		color = rgbm(0, 0, 0, 1),
 	})
 
@@ -42,7 +42,7 @@ function displayPopup(text, value, color)
 		string = text,
 		fontSize = 75,
 		xPos = 0,
-		yPos = 205,
+		yPos = 207,
 		xAlign = ui.Alignment.Center,
 		yAlign = ui.Alignment.Center,
 		margin = vec2(1020, 550),
@@ -50,14 +50,24 @@ function displayPopup(text, value, color)
 	})
 
 	ui.beginScale()
+	local fontSize = 170
+	local fontScale = 1
+	ac.log(ui.measureDWriteText(value, fontSize).x)
+
+	if ui.measureDWriteText(value, fontSize).x > 480 then
+		fontScale = 0.8
+	end
+
+	fontSize = fontSize * fontScale
+
 	drawText({
 		string = value,
-		fontSize = 140,
+		fontSize = fontSize,
 		xPos = 0,
-		yPos = 470,
+		yPos = 477,
 		xAlign = ui.Alignment.Center,
 		yAlign = ui.Alignment.Center,
-		margin = vec2(1025, 550),
+		margin = vec2(1024, 550),
 		color = rgbm(1, 1, 1, 1),
 	})
 	ui.endScale(2)
@@ -73,46 +83,36 @@ local rpmColors = {
 	purple = rgbm(0.75, 0, 0.75, 1),
 }
 
-function drawLaunch(rpm)
-	local rpmColor = rgbm(0.05, 0.05, 0.05, 1)
+function drawLaunch(rpm, targetRpm, farColor, closeColor, optimumColor)
+	local blackColor = rgbm(0, 0, 0, 1)
+	local rpmColor = blackColor
 	local rpmText = "RPM LOW"
+	local rpmChunk = 250
 
-	if rpm >= 10000 then
-		rpmColor = rpmColors.red
+	if rpm >= targetRpm + rpmChunk * 3 then
+		rpmColor = farColor
 		rpmText = "RPM HIGH"
-	elseif rpm >= 9300 and rpm < 10000 then
-		rpmColor = rpmColors.yellow
+	elseif rpm >= targetRpm + rpmChunk and rpm < targetRpm + rpmChunk * 3 then
+		rpmColor = closeColor
 		rpmText = "RPM HIGH"
-	elseif rpm >= 8900 and rpm < 9300 then
-		rpmColor = rpmColors.purple
+	elseif rpm >= targetRpm - rpmChunk and rpm < targetRpm + rpmChunk then
+		rpmColor = optimumColor
 		rpmText = "RPM GOOD"
-	elseif rpm >= 8000 and rpm < 8800 then
-		rpmColor = rpmColors.yellow
+	elseif rpm >= targetRpm - rpmChunk * 3 and rpm < targetRpm - rpmChunk then
+		rpmColor = closeColor
 		rpmText = "RPM LOW"
-	elseif rpm >= 7000 and rpm < 8000 then
-		rpmColor = rpmColors.red
+	elseif rpm >= targetRpm - rpmChunk * 5 and rpm < targetRpm - rpmChunk * 3 then
+		rpmColor = farColor
 		rpmText = "RPM LOW"
 	end
 
-	display.rect({
-		pos = vec2(0, 521),
-		size = vec2(408, 350),
-		color = rgb.colors.black,
-	})
-
-	display.rect({
-		pos = vec2(614, 521),
-		size = vec2(1024, 350),
-		color = rgb.colors.black,
-	})
-
 	display.rect({ pos = vec2(0, 440), size = vec2(1024, 81), color = rpmColor })
-	display.rect({ pos = vec2(0, 0), size = vec2(50, 1024), color = rpmColor })
-	display.rect({ pos = vec2(954, 0), size = vec2(1024, 1024), color = rpmColor })
+	display.rect({ pos = vec2(2, 0), size = vec2(50, 1024), color = rpmColor })
+	display.rect({ pos = vec2(971, 0), size = vec2(50, 1024), color = rpmColor })
 	display.rect({ pos = vec2(0, 871), size = vec2(1024, 1024), color = rpmColor })
 	display.rect({
-		pos = vec2(50, 880),
-		size = vec2(905, 132),
+		pos = vec2(52, 881),
+		size = vec2(919, 133),
 		color = rgbm(0, 0, 0, 1),
 	})
 
@@ -132,30 +132,19 @@ function drawLaunch(rpm)
 	ui.popDWriteFont()
 end
 
+local splashImage = ui.decodeImage(io.loadFromZip(ac.findFile("src/assets.zip"), "rss_white.png"))
 function drawSplash()
 	drawDisplayBackground(vec2(1024, 1024), rgb.colors.black)
-	local xSize = 1080
-	local ySize = 173
-	local x = -45
-	local y = 630
+	ui.setCursorX(-45)
+	ui.setCursorY(630)
 
 	ui.beginScale()
-
-	ui.drawImage(
-		"src\\rss_white.png",
-		vec2(x, y),
-		vec2(x + xSize, y + ySize),
-		rgbm(1, 1, 1, 1),
-		vec2(0, 0),
-		vec2(1, 1),
-		true
-	)
-
+	ui.image(splashImage, vec2(1080, 173), true)
 	ui.endScale(0.7)
 end
 
 --- Draws whether DRS is enabled and/or active
-function drawDRS(x, y, size)
+function drawDRS(x, y, size, color)
 	ui.pushDWriteFont("Default;Weight=Black")
 
 	local connected, drsAvailable
@@ -165,7 +154,6 @@ function drawDRS(x, y, size)
 	local drsColour = rgbm(0, 0, 0, 1)
 	local drsTextColour = rgbm(0, 0, 0, 1)
 	local drsGray = rgbm(0.3, 0.3, 0.3, 1)
-	local drsGreen = rgbm(0, 0.6, 0.2, 1)
 
 	if RareData then
 		connected = RareData.connected()
@@ -188,7 +176,7 @@ function drawDRS(x, y, size)
 	end
 
 	if drsActive then
-		drsColour = drsGreen
+		drsColour = color
 	end
 
 	ui.drawRectFilled(vec2(233, 616), vec2(409, 701), drsColour)
@@ -201,47 +189,6 @@ function drawDRS(x, y, size)
 		xAlign = ui.Alignment.Center,
 		yAlign = ui.Alignment.Center,
 		color = drsTextColour,
-	})
-
-	ui.popDWriteFont()
-end
-
---- Draws the tyre tc
-function drawTyrePC(x, y, gapX, gapY, sizeX, sizeY)
-	ui.pushDWriteFont("Default;Weight=Black")
-	local compound = slow.compoundIndex
-
-	local wheel0 = slow.wheels[0]
-	local optimum0 = compoundIdealPressures[compound][0]
-	local wheel1 = slow.wheels[1]
-	local optimum1 = compoundIdealPressures[compound][1]
-	local wheel2 = slow.wheels[2]
-	local optimum2 = compoundIdealPressures[compound][2]
-	local wheel3 = slow.wheels[3]
-	local optimum3 = compoundIdealPressures[compound][3]
-
-	display.rect({
-		pos = vec2(x, y),
-		size = vec2(sizeX, sizeY),
-		color = tempBasedColor(wheel0.tyrePressure, optimum0 - 2, optimum0 - 1, optimum0, optimum0 + 1, 1),
-	})
-
-	display.rect({
-		pos = vec2(x + gapX, y),
-		size = vec2(sizeX, sizeY),
-		color = tempBasedColor(wheel1.tyrePressure, optimum1 - 2, optimum1 - 1, optimum1, optimum1 + 1, 1),
-	})
-
-	display.rect({
-		pos = vec2(x, y + gapY),
-		size = vec2(sizeX, sizeY),
-		color = tempBasedColor(wheel2.tyrePressure, optimum2 - 2, optimum2 - 1, optimum2, optimum2 + 1, 1),
-	})
-
-	display.rect({
-		pos = vec2(x + gapX, y + gapY),
-		size = vec2(sizeX, sizeY),
-		color = tempBasedColor(wheel3.tyrePressure, optimum3 - 2, optimum3 - 1, optimum3, optimum3 + 1, 1),
 	})
 
 	ui.popDWriteFont()
@@ -266,11 +213,11 @@ function drawFlag()
 	})
 end
 
-function drawOvertake()
+function drawOvertake(color)
 	if car.kersButtonPressed then
 		ui.pushDWriteFont("Default;Weight=Black")
 
-		ui.drawRectFilled(vec2(614, 616), vec2(789, 701), rgbm(1, 0, 1, 1))
+		ui.drawRectFilled(vec2(614, 616), vec2(789, 701), color)
 
 		drawText({
 			string = "OT",
@@ -290,10 +237,18 @@ end
 function drawTyrePressure(slow, font, x, y, gapX, gapY, size, color)
 	ui.pushDWriteFont(font)
 	local compound = slow.compoundIndex
-	local optimum0 = compoundIdealPressures[compound][0]
-	local optimum1 = compoundIdealPressures[compound][1]
-	local optimum2 = compoundIdealPressures[compound][2]
-	local optimum3 = compoundIdealPressures[compound][3]
+
+	local optimum0 = 25
+	local optimum1 = 25
+	local optimum2 = 23
+	local optimum3 = 23
+
+	try(function()
+		optimum0 = compoundIdealPressures[compound][0]
+		optimum1 = compoundIdealPressures[compound][1]
+		optimum2 = compoundIdealPressures[compound][2]
+		optimum3 = compoundIdealPressures[compound][3]
+	end)
 
 	drawText({
 		fontSize = size,
@@ -339,7 +294,7 @@ function drawTyrePressure(slow, font, x, y, gapX, gapY, size, color)
 end
 
 --- Draws the tyre tc
-function drawTyreTC(slow, x, y, gapX, gapY, sizeX, sizeY)
+function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor, optimumColor, hotColor)
 	ui.pushDWriteFont("Default;Weight=Black")
 
 	local brightness = 1
@@ -358,13 +313,15 @@ function drawTyreTC(slow, x, y, gapX, gapY, sizeX, sizeY)
 	ui.drawRectFilled(
 		vec2(x, y),
 		vec2(x + sizeX, y + sizeY),
-		tempBasedColor(
+		optimumValueLerp(
 			wheel0.tyreCoreTemperature,
 			optimum0 - optimumWindow - 10,
-			optimum0 - optimumWindow,
 			optimum0,
 			optimum0 + optimumWindow + 10,
-			brightness
+			coolColor,
+			coolColor,
+			optimumColor,
+			hotColor
 		),
 		10,
 		ui.CornerFlags.All
@@ -373,13 +330,15 @@ function drawTyreTC(slow, x, y, gapX, gapY, sizeX, sizeY)
 	ui.drawRectFilled(
 		vec2(x + gapX, y),
 		vec2(x + gapX + sizeX, y + sizeY),
-		tempBasedColor(
+		optimumValueLerp(
 			wheel1.tyreCoreTemperature,
 			optimum1 - optimumWindow - 10,
-			optimum1 - optimumWindow,
 			optimum1,
 			optimum1 + optimumWindow + 10,
-			brightness
+			coolColor,
+			coolColor,
+			optimumColor,
+			hotColor
 		),
 		10,
 		ui.CornerFlags.All
@@ -388,13 +347,15 @@ function drawTyreTC(slow, x, y, gapX, gapY, sizeX, sizeY)
 	ui.drawRectFilled(
 		vec2(x, y + gapY),
 		vec2(x + sizeX, y + gapY + sizeY),
-		tempBasedColor(
+		optimumValueLerp(
 			wheel2.tyreCoreTemperature,
 			optimum2 - optimumWindow - 10,
-			optimum2 - optimumWindow,
 			optimum2,
 			optimum2 + optimumWindow + 10,
-			brightness
+			coolColor,
+			coolColor,
+			optimumColor,
+			hotColor
 		),
 		10,
 		ui.CornerFlags.All
@@ -403,13 +364,15 @@ function drawTyreTC(slow, x, y, gapX, gapY, sizeX, sizeY)
 	ui.drawRectFilled(
 		vec2(x + gapX, y + gapY),
 		vec2(x + gapX + sizeX, y + gapY + sizeY),
-		tempBasedColor(
+		optimumValueLerp(
 			wheel3.tyreCoreTemperature,
 			optimum3 - optimumWindow - 10,
-			optimum3 - optimumWindow,
 			optimum3,
 			optimum3 + optimumWindow + 10,
-			brightness
+			coolColor,
+			coolColor,
+			optimumColor,
+			hotColor
 		),
 		10,
 		ui.CornerFlags.All
@@ -500,31 +463,30 @@ function drawGear(slow, x, y, size)
 end
 
 --- Draws when the driver is in the pit lane
-function drawInPit()
-	local yellowColor = rgbm(0.65, 0.65, 0.1, 1)
+function drawInPit(color)
 	ui.pushDWriteFont("Default")
 	display.rect({
 		pos = vec2(0, 450),
 		size = vec2(1020, 71),
-		color = yellowColor,
+		color = color,
 	})
 
 	display.rect({
 		pos = vec2(414, 526),
 		size = vec2(194, 265),
-		color = yellowColor,
+		color = color,
 	})
 
 	display.rect({
 		pos = vec2(0, 521),
 		size = vec2(52, 498),
-		color = yellowColor,
+		color = color,
 	})
 
 	display.rect({
 		pos = vec2(971, 521),
 		size = vec2(52, 498),
-		color = yellowColor,
+		color = color,
 	})
 
 	if car.speedLimiterInAction == false or car.manualPitsSpeedLimiterEnabled == true then
@@ -573,19 +535,40 @@ function drawErsBar(value, x, y, sizeX, sizeY, rotation, color1, color2)
 	ui.endRotation(rotation)
 end
 
-function drawBrakes(slow, x, y, xGap, yGap, xSize, ySize)
+function drawBrakes(slow, x, y, xGap, yGap, xSize, ySize, coolColor, optimumColor, hotColor)
 	ui.pushDWriteFont("Default;Weight=Black")
+	local lowBrakeTemp = 300
+	local optimumBrakeTemp = 300
+	local highBrakeTemp = 300
 
 	display.rect({
 		pos = vec2(x, y),
 		size = vec2(xSize, ySize),
-		color = tempBasedColor(slow.wheels[0].discTemperature, 300, 400, 800, 1200, 1),
+		color = optimumValueLerp(
+			slow.wheels[0].discTemperature,
+			lowBrakeTemp,
+			optimumBrakeTemp,
+			highBrakeTemp,
+			coolColor,
+			coolColor,
+			optimumColor,
+			hotColor
+		),
 	})
 
 	display.rect({
 		pos = vec2(x + xGap, y + yGap),
 		size = vec2(xSize, ySize),
-		color = tempBasedColor(slow.wheels[2].discTemperature, 300, 400, 800, 1200, 1),
+		color = optimumValueLerp(
+			slow.wheels[2].discTemperature,
+			lowBrakeTemp,
+			optimumBrakeTemp,
+			highBrakeTemp,
+			coolColor,
+			coolColor,
+			optimumColor,
+			hotColor
+		),
 	})
 
 	drawText({
@@ -664,13 +647,14 @@ function drawGridLines()
 end
 
 function drawAlignments()
-	local xStart = 608
-	local yStart = 701
-	local xSize = 367
-	local ySize = 80
-	local count = 6
+	local xStart = 22
+	local yStart = 520
+	local xSize = 977
+	local ySize = 483
+	local count = 10
 	local seg = xSize / count
 	local segX = ySize / count
+	local color = rgbm(1, 1, 1, 1)
 
 	display.rect({
 		pos = vec2(xStart, yStart),
@@ -694,7 +678,7 @@ function drawAlignments()
 		display.rect({
 			pos = vec2(xStart + (i * seg), yStart),
 			size = vec2(1, ySize),
-			color = rgbm(1, 1, 1, 0.3),
+			color = color,
 		})
 	end
 
@@ -702,7 +686,7 @@ function drawAlignments()
 		display.rect({
 			pos = vec2(xStart, yStart + (i * segX)),
 			size = vec2(xSize, 1),
-			color = rgbm(1, 1, 1, 0.3),
+			color = color,
 		})
 	end
 end

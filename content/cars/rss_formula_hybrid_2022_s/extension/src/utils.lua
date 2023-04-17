@@ -12,17 +12,21 @@ function getIdealPressure(compound, wheel)
 	end
 end
 
-function tempBasedColor(input, coldTemp, coolTemp, optimumTemp, hotTemp, brightness)
+function optimumValueLerp(input, lowValue, optimumValue, highValue, defaultColor, lowColor, optimumColor, highColor)
 	local inputFloor = math.floor(input)
-	local deltaOptimum = hotTemp - optimumTemp
-	local deltaCool = coolTemp - coldTemp
+	local deltaHigh = highValue - optimumValue
+	local deltaLow = optimumValue - lowValue
+	local color = defaultColor:clone()
 
-	local red = math.max(0, (inputFloor - optimumTemp) / deltaOptimum)
-	local green = math.max(0, (inputFloor - coldTemp) / deltaCool)
-		* math.max(0, 1 - (inputFloor - optimumTemp) / deltaOptimum)
-	local blue = math.max(0, 1 - (inputFloor - coldTemp) / deltaCool)
+	if input > lowValue and input <= optimumValue then
+		color:setLerp(optimumColor, lowColor, (optimumValue - inputFloor) / deltaLow)
+	elseif input > optimumValue then
+		color:setLerp(optimumColor, highColor, (inputFloor - optimumValue) / deltaHigh)
+	else
+		color = defaultColor
+	end
 
-	return rgbm(red, green, blue, brightness)
+	return color
 end
 
 --- Override function to add clarity and default values for drawing text
