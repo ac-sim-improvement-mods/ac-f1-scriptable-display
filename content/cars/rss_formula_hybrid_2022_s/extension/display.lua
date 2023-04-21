@@ -3,6 +3,19 @@
 
 require("src/formula_display")
 
+local ext_car = ac.connect({
+	ac.StructItem.key(ac.getCarID(car.index) .. "_ext_car_" .. car.index),
+	brakeBiasBase = ac.StructItem.float(),
+	brakeBiasFine = ac.StructItem.float(),
+	brakeMigration = ac.StructItem.float(),
+	brakeMigrationRamp = ac.StructItem.float(),
+	diffModeCurrent = ac.StructItem.float(),
+	diffEntry = ac.StructItem.float(),
+	diffMid = ac.StructItem.float(),
+	diffExitHispd = ac.StructItem.float(),
+	diffMidHispdSwitch = ac.StructItem.boolean(),
+}, true, ac.SharedNamespace.CarScript)
+
 local ext_config = ac.INIConfig.load(
 	ac.getFolder(ac.FolderID.ContentCars) .. "\\" .. ac.getCarID(0) .. "\\extension\\ext_config.ini",
 	ac.INIFormat.ExtendedIncludes
@@ -120,8 +133,6 @@ local function updateData(dt, sim)
 	if delaySlow > slowRefreshPeriod then
 		delaySlow = 0
 
-		ac.log(ac.getSunAngle())
-
 		-- Session data
 		sdata.currentTime = string.format("%02d:%02d", sim.timeHours, sim.timeMinutes)
 		sdata.sessionLaps = 0
@@ -235,14 +246,11 @@ local function updateData(dt, sim)
 			)
 	)
 
-	sdata.brakeBiasMigration = ac.getCarPhysics(car.index).scriptControllerInputs[1]
-	sdata.differentialEntry = ac.getCarPhysics(car.index).scriptControllerInputs[3] == 0 and 1
-		or ac.getCarPhysics(car.index).scriptControllerInputs[3]
-	sdata.differentialMid = ac.getCarPhysics(car.index).scriptControllerInputs[4] == 0 and 4
-		or ac.getCarPhysics(car.index).scriptControllerInputs[4]
-	sdata.differentialHispd = ac.getCarPhysics(car.index).scriptControllerInputs[5] == 0 and 5
-		or ac.getCarPhysics(car.index).scriptControllerInputs[5]
-	sdata.differentialMode = ac.getCarPhysics(car.index).scriptControllerInputs[6]
+	sdata.brakeMigration = ext_car.brakeMigration + 1
+	sdata.differentialEntry = ext_car.diffEntry + 1
+	sdata.differentialMid = ext_car.diffMid + 1
+	sdata.differentialHispd = ext_car.diffExitHispd + 1
+	sdata.differentialMode = ext_car.diffModeCurrent
 end
 
 --endregion
@@ -439,7 +447,7 @@ local function displayEngineBrake(dt)
 end
 
 local function displayBmig(dt)
-	displayPopup("BRK MIG", sdata.brakeBiasMigration, rgbm(0, 0.4, 1, 1))
+	displayPopup("BRK MIG", sdata.brakeMigration, rgbm(0, 0.4, 1, 1))
 end
 
 --region Differential
@@ -499,7 +507,7 @@ local lastMgukDelivery = car.mgukDelivery
 local lastMgukRecovery = car.mgukRecovery
 local lastMguhMode = car.mguhChargingBatteries
 local lastEngineBrake = car.currentEngineBrakeSetting
-local lastBmig = sdata.brakeBiasMigration
+local lastBmig = sdata.brakeMigration
 local lastExtraFState = car.extraF
 
 local tempMode = 1
@@ -520,7 +528,7 @@ local function resetLastStates()
 	lastMguhMode = car.mguhChargingBatteries
 	lastEngineBrake = car.currentEngineBrakeSetting
 	lastEngineBrake = car.currentEngineBrakeSetting
-	lastBmig = sdata.brakeBiasMigration
+	lastBmig = sdata.brakeMigration
 	lastEntryDiff = sdata.differentialEntry
 	lastMidDiff = sdata.differentialMid
 	lastHispdDiff = sdata.differentialHispd
@@ -614,8 +622,8 @@ local function getDisplayMode(sim)
 		addTime()
 		tempMode = 8
 		return tempMode
-	elseif lastBmig ~= sdata.brakeBiasMigration then
-		lastBmig = sdata.brakeBiasMigration
+	elseif lastBmig ~= sdata.brakeMigration then
+		lastBmig = sdata.brakeMigration
 		addTime()
 		tempMode = 9
 		return tempMode

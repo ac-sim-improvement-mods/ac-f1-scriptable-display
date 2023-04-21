@@ -52,7 +52,6 @@ function displayPopup(text, value, color)
 	ui.beginScale()
 	local fontSize = 170
 	local fontScale = 1
-	ac.log(ui.measureDWriteText(value, fontSize).x)
 
 	if ui.measureDWriteText(value, fontSize).x > 480 then
 		fontScale = 0.8
@@ -308,16 +307,16 @@ function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor
 	local wheel3 = slow.wheels[3]
 	local optimum3 = wheel3.tyreOptimumTemperature
 
-	local optimumWindow = 10
+	local optimumWindow = 30
 
 	ui.drawRectFilled(
 		vec2(x, y),
 		vec2(x + sizeX, y + sizeY),
 		optimumValueLerp(
 			wheel0.tyreCoreTemperature,
-			optimum0 - optimumWindow - 10,
+			optimum0 - optimumWindow,
 			optimum0,
-			optimum0 + optimumWindow + 10,
+			optimum0 + optimumWindow,
 			coolColor,
 			coolColor,
 			optimumColor,
@@ -332,9 +331,9 @@ function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor
 		vec2(x + gapX + sizeX, y + sizeY),
 		optimumValueLerp(
 			wheel1.tyreCoreTemperature,
-			optimum1 - optimumWindow - 10,
+			optimum1 - optimumWindow,
 			optimum1,
-			optimum1 + optimumWindow + 10,
+			optimum1 + optimumWindow,
 			coolColor,
 			coolColor,
 			optimumColor,
@@ -349,9 +348,9 @@ function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor
 		vec2(x + sizeX, y + gapY + sizeY),
 		optimumValueLerp(
 			wheel2.tyreCoreTemperature,
-			optimum2 - optimumWindow - 10,
+			optimum2 - optimumWindow,
 			optimum2,
-			optimum2 + optimumWindow + 10,
+			optimum2 + optimumWindow,
 			coolColor,
 			coolColor,
 			optimumColor,
@@ -366,9 +365,9 @@ function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor
 		vec2(x + gapX + sizeX, y + gapY + sizeY),
 		optimumValueLerp(
 			wheel3.tyreCoreTemperature,
-			optimum3 - optimumWindow - 10,
+			optimum3 - optimumWindow,
 			optimum3,
-			optimum3 + optimumWindow + 10,
+			optimum3 + optimumWindow,
 			coolColor,
 			coolColor,
 			optimumColor,
@@ -450,6 +449,12 @@ function drawGear(slow, x, y, size)
 		gear = "N"
 	end
 
+	local color = (slow.isInPitlane and car.clutch ~= 0) and rgbm(0, 0, 0, 1) or rgbm(1, 1, 1, 0.7)
+
+	if ac.getSim().isInMainMenu and slow.isInPitlane then
+		color = rgbm(0, 0, 0, 1)
+	end
+
 	drawText({
 		string = gear,
 		fontSize = size,
@@ -457,7 +462,7 @@ function drawGear(slow, x, y, size)
 		yPos = gearYPos,
 		xAlign = ui.Alignment.Center,
 		yAlign = ui.Alignment.Center,
-		color = slow.isInPitlane and rgbm(0, 0, 0, 1) or rgbm(1, 1, 1, 0.7),
+		color = color,
 	})
 	ui.popDWriteFont()
 end
@@ -537,9 +542,9 @@ end
 
 function drawBrakes(slow, x, y, xGap, yGap, xSize, ySize, coolColor, optimumColor, hotColor)
 	ui.pushDWriteFont("Default;Weight=Black")
-	local lowBrakeTemp = 300
-	local optimumBrakeTemp = 450
-	local highBrakeTemp = 1000
+	local lowBrakeTemp = 250
+	local optimumBrakeTemp = 400
+	local highBrakeTemp = 1200
 
 	display.rect({
 		pos = vec2(x, y),
