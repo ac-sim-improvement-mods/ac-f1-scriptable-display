@@ -585,9 +585,6 @@ local function getDisplayMode(sim, forcedMode)
 	end
 	lastExtraFState = car.extraF
 
-	-- If either brake bias or mguk delivery is not the same from the last script update, then start a timer
-	-- If the driver changes bb or mgukd, reset the timer
-	-- This also takes care of showing both displays if both bb and mgukd are changed
 	local showSplash = true
 	if stored.splashShown == true then
 		showSplash = false
