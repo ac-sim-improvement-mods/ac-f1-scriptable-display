@@ -18,8 +18,12 @@ for compound = 0, 4 do
 	compoundIdealPressures[compound] = wheels
 end
 
-function displayPopup(text, value, color)
-	ui.pushDWriteFont("Default;Weight=Bold")
+function displayPopup(font, fontSize, label, value, color, fontColor)
+	ui.pushDWriteFont(font)
+
+	if not fontColor then
+		fontColor = rgbm(0, 0, 0, 1)
+	end
 
 	-- -- Black master background
 	display.rect({
@@ -39,25 +43,15 @@ function displayPopup(text, value, color)
 	})
 
 	drawText({
-		string = text,
+		string = label,
 		fontSize = 75,
 		xPos = 0,
 		yPos = 207,
 		xAlign = ui.Alignment.Center,
 		yAlign = ui.Alignment.Center,
 		margin = vec2(1020, 550),
-		color = rgbm(0, 0, 0, 1),
+		color = fontColor,
 	})
-
-	ui.beginScale()
-	local fontSize = 170
-	local fontScale = 1
-
-	if ui.measureDWriteText(value, fontSize).x > 480 then
-		fontScale = 0.8
-	end
-
-	fontSize = fontSize * fontScale
 
 	drawText({
 		string = value,
@@ -69,18 +63,11 @@ function displayPopup(text, value, color)
 		margin = vec2(1024, 550),
 		color = rgbm(1, 1, 1, 1),
 	})
-	ui.endScale(2)
 
 	ui.popDWriteFont()
 
 	-- drawGridLines()
 end
-
-local rpmColors = {
-	red = rgbm(1, 0, 0, 1),
-	yellow = rgbm(0.79, 0.78, 0, 1),
-	purple = rgbm(0.75, 0, 0.75, 1),
-}
 
 function drawLaunch(rpm, targetRpm, farColor, closeColor, optimumColor)
 	local blackColor = rgbm(0, 0, 0, 1)
@@ -131,15 +118,32 @@ function drawLaunch(rpm, targetRpm, farColor, closeColor, optimumColor)
 	ui.popDWriteFont()
 end
 
-local splashImage = ui.decodeImage(io.loadFromZip(ac.findFile("src/assets.zip"), "rss_white.png"))
+local rssLogoPng = ui.decodeImage(io.loadFromZip(ac.findFile("src/assets.zip"), "rss_white.png"))
+local gsiLogoPng = ui.decodeImage(io.loadFromZip(ac.findFile("src/assets.zip"), "gsi_white.png"))
+local rexLogoPng = ui.decodeImage(io.loadFromZip(ac.findFile("src/assets.zip"), "rexing_white.png"))
+
 function drawSplash()
 	drawDisplayBackground(vec2(1024, 1024), rgb.colors.black)
 	ui.setCursorX(-45)
-	ui.setCursorY(630)
+	ui.setCursorY(660)
 
 	ui.beginScale()
-	ui.image(splashImage, vec2(1080, 173), true)
-	ui.endScale(0.7)
+	ui.image(rssLogoPng, vec2(1080, 173), true)
+	ui.endScale(0.65)
+
+	-- ui.setCursorX(-35)
+	-- ui.setCursorY(360)
+
+	-- ui.beginScale()
+	-- ui.image(gsiLogoPng, vec2(1080, 430), true)
+	-- ui.endScale(0.15)
+
+	ui.setCursorX(365)
+	ui.setCursorY(550)
+
+	ui.beginScale()
+	ui.image(rexLogoPng, vec2(292, 51), true)
+	ui.endScale(1)
 end
 
 --- Draws whether DRS is enabled and/or active
@@ -606,148 +610,4 @@ function drawDisplayBackground(size, color)
 		size = size,
 		color = color,
 	})
-end
-
---- Draws grid
-function drawGridLines()
-	-- x 2-1020
-	-- y 440-1022
-	local borderColor = rgbm(0, 1, 1, 0.9)
-	local xOrigin = 2
-	local yOrigin = 440
-	local xSize = 1017
-	local ySize = 582
-	local count = 100
-	local lineSize = 1
-
-	for i = 0, count do
-		display.rect({
-			pos = vec2(xOrigin + (i * xSize / count), yOrigin),
-			size = vec2(lineSize, ySize),
-			color = i == count / 2 and rgbm(1, 0, 0, 1) or borderColor,
-		})
-	end
-
-	for i = 1, count do
-		display.rect({
-			pos = vec2(xOrigin, yOrigin + (i * ySize / count)),
-			size = vec2(xSize, lineSize),
-			color = i == count / 2 and rgbm(1, 0, 0, 1) or borderColor,
-		})
-	end
-
-	-- -- Center line
-	-- display.rect({
-	-- 	pos = vec2(510 - 0.5, 440),
-	-- 	size = vec2(1, 582),
-	-- 	color = rgbm(1, 0, 0, 1),
-	-- })
-
-	-- -- Center line
-	-- display.rect({
-	-- 	pos = vec2(0, 731 - 0.5),
-	-- 	size = vec2(1022, 1),
-	-- 	color = rgbm(1, 0, 0, 1),
-	-- })
-end
-
-function drawAlignments()
-	local xStart = 22
-	local yStart = 520
-	local xSize = 977
-	local ySize = 483
-	local count = 10
-	local seg = xSize / count
-	local segX = ySize / count
-	local color = rgbm(1, 1, 1, 1)
-
-	display.rect({
-		pos = vec2(xStart, yStart),
-		size = vec2(xSize, 3),
-		color = rgbm(1, 0, 1, 0.3),
-	})
-
-	display.rect({
-		pos = vec2(xStart, yStart),
-		size = vec2(3, ySize),
-		color = rgbm(1, 0, 1, 0.3),
-	})
-
-	display.rect({
-		pos = vec2(xStart, yStart),
-		size = vec2(3, 3),
-		color = rgbm(1, 0, 1, 1),
-	})
-
-	for i = 1, count do
-		display.rect({
-			pos = vec2(xStart + (i * seg), yStart),
-			size = vec2(1, ySize),
-			color = color,
-		})
-	end
-
-	for i = 1, count do
-		display.rect({
-			pos = vec2(xStart, yStart + (i * segX)),
-			size = vec2(xSize, 1),
-			color = color,
-		})
-	end
-end
-
-function drawZones()
-	display.rect({
-		pos = vec2(419, 530),
-		size = vec2(184, 252),
-		color = rgbm(1, 0, 1, 0.5),
-	})
-
-	display.rect({
-		pos = vec2(205, 787),
-		size = vec2(105, 113),
-		color = rgbm(1, 0, 0.5, 0.2),
-	})
-
-	display.rect({
-		pos = vec2(205, 905),
-		size = vec2(105, 113),
-		color = rgbm(1, 0, 0.5, 0.2),
-	})
-
-	-- display.rect({
-	-- 	pos = vec2(47, 701),
-	-- 	size = vec2(184, 315),
-	-- 	color = rgbm(1, 0, 0.5, 0.2),
-	-- })
-
-	-- display.rect({
-	-- 	pos = vec2(47, 806),
-	-- 	size = vec2(184, 105),
-	-- 	color = rgbm(1, 0, 0.75, 0.5),
-	-- })
-
-	-- display.rect({
-	-- 	pos = vec2(47, 701),
-	-- 	size = vec2(184, 105),
-	-- 	color = rgbm(1, 0, 1, 0.5),
-	-- })
-
-	-- display.rect({
-	-- 	pos = vec2(791, 701),
-	-- 	size = vec2(184, 315),
-	-- 	color = rgbm(1, 0, 0.5, 0.2),
-	-- })
-
-	-- display.rect({
-	-- 	pos = vec2(791, 806),
-	-- 	size = vec2(184, 105),
-	-- 	color = rgbm(1, 0, 0.75, 0.5),
-	-- })
-
-	-- display.rect({
-	-- 	pos = vec2(791, 701),
-	-- 	size = vec2(184, 105),
-	-- 	color = rgbm(1, 0, 1, 0.5),
-	-- })
 end

@@ -46,7 +46,7 @@ stored.initialized = false
 
 -- Display setup
 local displayColors = {
-	lightGreen = rgbm(0.5, 1, 0.5, 1),
+	lightGreen = rgbm(0.45, 1, 0.45, 1),
 	activeGreen = rgbm(0, 0.6, 0.2, 1),
 	lightBlue = rgbm(0.2, 0.9, 1, 1),
 	coolBlue = rgbm(0, 0.1, 1, 1),
@@ -54,6 +54,7 @@ local displayColors = {
 	red = rgbm(1, 0, 0, 1),
 	warningYellow = rgbm(1, 1, 0.3, 1),
 	bestPurple = rgbm(1, 0, 1, 1),
+	black = rgbm(0, 0, 0, 1),
 }
 
 local backgroundColor = rgbm(0, 0, 0, 1)
@@ -359,9 +360,9 @@ local function displayWarmup(dt)
 	drawValue(displayFont, sdata.currentEngineBrakeSetting, 55, 56, 579, ui.Alignment.Center)
 	drawValue(displayFont, sdata.mgukRecovery, 55, 165, 579, ui.Alignment.Center)
 
-	drawValue(displayFont, sdata.previousLapTimeMs, 70, 610, 388, ui.Alignment.End, sdata.previousLapValidColor)
+	drawValue(displayFont, sdata.bestLapTimeMs, 70, 610, 388, ui.Alignment.End, rgbm(1, 0, 1, 0.7))
 	drawValue(displayFont, sdata.performanceMeter, 70, 610, 479, ui.Alignment.End, sdata.performanceColor)
-	drawValue(displayFont, sdata.bestLapTimeMs, 70, 610, 569, ui.Alignment.End, rgbm(1, 0, 1, 0.7))
+	drawValue(displayFont, sdata.previousLapTimeMs, 70, 610, 569, ui.Alignment.End, sdata.previousLapValidColor)
 
 	drawValue(displayFont, sdata.differentialEntry, 55, -51, 398, ui.Alignment.Center)
 	drawValue(displayFont, sdata.differentialMid, 55, 56, 398, ui.Alignment.Center)
@@ -448,29 +449,42 @@ local function displayLaunch(dt)
 end
 
 local function displayBrakeBias(dt)
-	displayPopup("BRK BIAS", string.format("%.1f", car.brakeBias * 100), rgbm(1, 0.5, 0, 0.9))
+	displayPopup(displayFontBold, 350, "BRK BIAS", string.format("%.1f", car.brakeBias * 100), rgbm(1, 0.5, 0, 0.9))
 end
 
 local function displayMgukDelivery(dt)
-	local mgukDelivery = mgukDeliveryShortNames[car.mgukDelivery + 1]
+	local mgukDeliveryName = mgukDeliveryShortNames[car.mgukDelivery + 1]
 
-	displayPopup("DEPLOY", mgukDelivery, rgbm(1, 1, 1, 0.7))
+	displayPopup(
+		displayFontBold,
+		200,
+		"DEPLOY " .. car.mgukDelivery,
+		mgukDeliveryName,
+		displayColors.black,
+		displayColors.offWhite
+	)
 end
 
 local function displayMgukRecovery(dt)
-	displayPopup("TORQ", car.mgukRecovery, rgbm(0, 1, 0.5, 0.7))
+	displayPopup(displayFontBold, 350, "REGEN", car.mgukRecovery, displayColors.lightGreen)
 end
 
 local function displayMguhMode(dt)
-	displayPopup("RECHARGE", car.mguhChargingBatteries and "ON" or "OFF", rgbm(1, 0.15, 0.1, 0.5))
+	displayPopup(
+		displayFontBold,
+		120,
+		"RECHARGE",
+		car.mguhChargingBatteries and "RECHARGE ON" or "RECHARGE OFF",
+		displayColors.lightBlue
+	)
 end
 
 local function displayEngineBrake(dt)
-	displayPopup("ENGINE BRK", car.currentEngineBrakeSetting, rgbm(1, 1, 1, 0.45))
+	displayPopup(displayFontBold, 350, "ENGINE BRK", car.currentEngineBrakeSetting, rgbm(1, 1, 1, 0.45))
 end
 
 local function displayBmig(dt)
-	displayPopup("BRK MIG", sdata.brakeMigration, rgbm(0, 0.4, 1, 1))
+	displayPopup(displayFontBold, 350, "BRK MIG", sdata.brakeMigration, rgbm(0, 0.2, 0.6, 1))
 end
 
 --region Differential
@@ -493,7 +507,7 @@ local function displayDiff(dt)
 		diffValue = sdata.differentialHispd
 	end
 
-	displayPopup("DIFF " .. diffTitle, diffValue, rgbm(1, 0.2, 1, 1))
+	displayPopup(displayFontBold, 350, "DIFF " .. diffTitle, diffValue, rgbm(1, 1, 1, 1))
 end
 
 --endregion
@@ -585,6 +599,9 @@ local function getDisplayMode(sim, forcedMode)
 	end
 	lastExtraFState = car.extraF
 
+	-- If either brake bias or mguk delivery is not the same from the last script update, then start a timer
+	-- If the driver changes bb or mgukd, reset the timer
+	-- This also takes care of showing both displays if both bb and mgukd are changed
 	local showSplash = true
 	if stored.splashShown == true then
 		showSplash = false
