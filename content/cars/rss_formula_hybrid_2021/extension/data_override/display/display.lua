@@ -133,9 +133,9 @@ local mgukDeliveryShortNames = {
 	"CHRGE",
 	"LOW",
 	"HIGH",
-	"OVRTK",
+	"ATTCK",
 	"TPSPD",
-	sim.raceSessionType == 3 and "ATTCK" or "QUAL",
+	"QUAL",
 }
 
 local fuel = {
