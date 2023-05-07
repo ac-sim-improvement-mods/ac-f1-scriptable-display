@@ -131,13 +131,6 @@ function drawSplash()
 	ui.image(rssLogoPng, vec2(1080, 173), true)
 	ui.endScale(0.65)
 
-	-- ui.setCursorX(-35)
-	-- ui.setCursorY(360)
-
-	-- ui.beginScale()
-	-- ui.image(gsiLogoPng, vec2(1080, 430), true)
-	-- ui.endScale(0.15)
-
 	ui.setCursorX(365)
 	ui.setCursorY(550)
 
@@ -237,9 +230,9 @@ function drawOvertake(color)
 end
 
 --- Draws the 4 tyres core temperature
-function drawTyrePressure(slow, font, x, y, gapX, gapY, size, color)
+function drawTyrePressure(sdata, font, x, y, gapX, gapY, size, color)
 	ui.pushDWriteFont(font)
-	local compound = slow.compoundIndex
+	local compound = sdata.compoundIndex
 
 	local optimum0 = 25
 	local optimum1 = 25
@@ -247,15 +240,15 @@ function drawTyrePressure(slow, font, x, y, gapX, gapY, size, color)
 	local optimum3 = 23
 
 	try(function()
-		optimum0 = compoundIdealPressures[compound][0]
-		optimum1 = compoundIdealPressures[compound][1]
-		optimum2 = compoundIdealPressures[compound][2]
-		optimum3 = compoundIdealPressures[compound][3]
+		optimum0 = compoundIdealPressures[compound][0] * 10
+		optimum1 = compoundIdealPressures[compound][1] * 10
+		optimum2 = compoundIdealPressures[compound][2] * 10
+		optimum3 = compoundIdealPressures[compound][3] * 10
 	end)
 
 	drawText({
 		fontSize = size,
-		string = string.format("%+.1f", slow.wheels[0].tyrePressure - optimum0),
+		string = string.format("%.0f", sdata.wheels[0].tyrePressure * 10 - optimum0),
 		xPos = x,
 		yPos = y,
 		xAlign = ui.Alignment.Center,
@@ -265,7 +258,7 @@ function drawTyrePressure(slow, font, x, y, gapX, gapY, size, color)
 
 	drawText({
 		fontSize = size,
-		string = string.format("%+.1f", slow.wheels[1].tyrePressure - optimum1),
+		string = string.format("%.0f", sdata.wheels[1].tyrePressure * 10 - optimum1),
 		xPos = x + gapX,
 		yPos = y,
 		xAlign = ui.Alignment.Center,
@@ -275,7 +268,7 @@ function drawTyrePressure(slow, font, x, y, gapX, gapY, size, color)
 
 	drawText({
 		fontSize = size,
-		string = string.format("%+.1f", slow.wheels[2].tyrePressure - optimum2),
+		string = string.format("%.0f", sdata.wheels[2].tyrePressure * 10 - optimum2),
 		xPos = x,
 		yPos = y + gapY,
 		xAlign = ui.Alignment.Center,
@@ -285,7 +278,7 @@ function drawTyrePressure(slow, font, x, y, gapX, gapY, size, color)
 
 	drawText({
 		fontSize = size,
-		string = string.format("%+.1f", slow.wheels[3].tyrePressure - optimum3),
+		string = string.format("%.0f", sdata.wheels[3].tyrePressure * 10 - optimum3),
 		xPos = x + gapX,
 		yPos = y + gapY,
 		xAlign = ui.Alignment.Center,
@@ -297,18 +290,18 @@ function drawTyrePressure(slow, font, x, y, gapX, gapY, size, color)
 end
 
 --- Draws the tyre tc
-function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor, optimumColor, hotColor)
+function drawTyreCoreTempGraphic(sdata, x, y, gapX, gapY, sizeX, sizeY, coolColor, optimumColor, hotColor)
 	ui.pushDWriteFont("Default;Weight=Black")
 
 	local brightness = 1
 
-	local wheel0 = slow.wheels[0]
+	local wheel0 = sdata.wheels[0]
 	local optimum0 = wheel0.tyreOptimumTemperature
-	local wheel1 = slow.wheels[1]
+	local wheel1 = sdata.wheels[1]
 	local optimum1 = wheel1.tyreOptimumTemperature
-	local wheel2 = slow.wheels[2]
+	local wheel2 = sdata.wheels[2]
 	local optimum2 = wheel2.tyreOptimumTemperature
-	local wheel3 = slow.wheels[3]
+	local wheel3 = sdata.wheels[3]
 	local optimum3 = wheel3.tyreOptimumTemperature
 
 	local optimumWindow = 30
@@ -326,7 +319,7 @@ function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor
 			optimumColor,
 			hotColor
 		),
-		10,
+		0,
 		ui.CornerFlags.All
 	)
 
@@ -343,7 +336,7 @@ function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor
 			optimumColor,
 			hotColor
 		),
-		10,
+		0,
 		ui.CornerFlags.All
 	)
 
@@ -360,7 +353,7 @@ function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor
 			optimumColor,
 			hotColor
 		),
-		10,
+		0,
 		ui.CornerFlags.All
 	)
 
@@ -377,7 +370,7 @@ function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor
 			optimumColor,
 			hotColor
 		),
-		10,
+		0,
 		ui.CornerFlags.All
 	)
 
@@ -385,20 +378,20 @@ function drawTyreCoreTempGraphic(slow, x, y, gapX, gapY, sizeX, sizeY, coolColor
 end
 
 --- Draws the 4 tyres core temperature
-function drawTyreCoreTemp(slow, font, x, y, gapX, gapY, size, color)
+function drawTyreCoreTemp(sdata, font, x, y, gapX, gapY, size, color)
 	ui.pushDWriteFont(font)
-	local wheel0 = slow.wheels[0]
+	local wheel0 = sdata.wheels[0]
 	local tempDelta0 = math.round(wheel0.tyreCoreTemperature - wheel0.tyreOptimumTemperature)
-	local wheel1 = slow.wheels[1]
+	local wheel1 = sdata.wheels[1]
 	local tempDelta1 = math.round(wheel1.tyreCoreTemperature - wheel1.tyreOptimumTemperature)
-	local wheel2 = slow.wheels[2]
+	local wheel2 = sdata.wheels[2]
 	local tempDelta2 = math.round(wheel2.tyreCoreTemperature - wheel2.tyreOptimumTemperature)
-	local wheel3 = slow.wheels[3]
+	local wheel3 = sdata.wheels[3]
 	local tempDelta3 = math.round(wheel3.tyreCoreTemperature - wheel3.tyreOptimumTemperature)
 
 	drawText({
 		fontSize = size,
-		string = string.format(tempDelta0 == 0 and "%.0f" or "%+.0f", tempDelta0),
+		string = string.format("% .0f", tempDelta0),
 		xPos = x,
 		yPos = y,
 		xAlign = ui.Alignment.Center,
@@ -408,7 +401,7 @@ function drawTyreCoreTemp(slow, font, x, y, gapX, gapY, size, color)
 
 	drawText({
 		fontSize = size,
-		string = string.format(tempDelta1 == 0 and "%.0f" or "%+.0f", tempDelta1),
+		string = string.format("% .0f", tempDelta1),
 		xPos = x + gapX,
 		yPos = y,
 		xAlign = ui.Alignment.Center,
@@ -418,7 +411,7 @@ function drawTyreCoreTemp(slow, font, x, y, gapX, gapY, size, color)
 
 	drawText({
 		fontSize = size,
-		string = string.format(tempDelta2 == 0 and "%.0f" or "%+.0f", tempDelta2),
+		string = string.format("% .0f", tempDelta2),
 		xPos = x,
 		yPos = y + gapY,
 		xAlign = ui.Alignment.Center,
@@ -428,7 +421,7 @@ function drawTyreCoreTemp(slow, font, x, y, gapX, gapY, size, color)
 
 	drawText({
 		fontSize = size,
-		string = string.format(tempDelta3 == 0 and "%.0f" or "%+.0f", tempDelta3),
+		string = string.format("% .0f", tempDelta3),
 		xPos = x + gapX,
 		yPos = y + gapY,
 		xAlign = ui.Alignment.Center,
@@ -439,12 +432,20 @@ function drawTyreCoreTemp(slow, font, x, y, gapX, gapY, size, color)
 	ui.popDWriteFont()
 end
 
+local gearsSynced = {}
+
 --- Draws the current gear
-function drawGear(slow, x, y, size)
+function drawGear(sdata, x, y, size)
 	ui.pushDWriteFont("Default;Weight=SemiBold")
-	local gear = slow.gear
+	local gear = sdata.gear
 	local gearXPos = x
 	local gearYPos = y
+
+	if not gearsSynced[gear] then
+		if car.poweredWheelsSpeed > 50 and car.rpm >= 10750 then
+			gearsSynced[gear] = true
+		end
+	end
 
 	if gear == -1 then
 		gear = "R"
@@ -453,9 +454,9 @@ function drawGear(slow, x, y, size)
 		gear = "N"
 	end
 
-	local color = (slow.isInPitlane and car.clutch ~= 0) and rgbm(0, 0, 0, 1) or rgbm(1, 1, 1, 0.7)
+	local color = (sdata.isInPitlane and car.clutch ~= 0) and rgbm(0, 0, 0, 1) or rgbm(1, 1, 1, 0.7)
 
-	if ac.getSim().isInMainMenu and slow.isInPitlane then
+	if ac.getSim().isInMainMenu and sdata.isInPitlane then
 		color = rgbm(0, 0, 0, 1)
 	end
 
@@ -467,6 +468,111 @@ function drawGear(slow, x, y, size)
 		xAlign = ui.Alignment.Center,
 		yAlign = ui.Alignment.Center,
 		color = color,
+	})
+	ui.popDWriteFont()
+end
+
+function drawGearSync(syncedColor)
+	local synced = true
+	ui.pushDWriteFont("Default;Weight=SemiBold")
+
+	local xPos = 255
+	local yPos = 455
+
+	-- drawText({
+	-- 	string = "GEAR",
+	-- 	fontSize = 50,
+	-- 	xPos = xPos - 250,
+	-- 	yPos = yPos - 145,
+	-- 	xAlign = ui.Alignment.Center,
+	-- 	yAlign = ui.Alignment.Center,
+	-- 	color = rgbm(1, 1, 1, 0.7),
+	-- })
+
+	-- drawText({
+	-- 	string = "SYNC",
+	-- 	fontSize = 50,
+	-- 	xPos = xPos + 415,
+	-- 	yPos = yPos - 145,
+	-- 	xAlign = ui.Alignment.Center,
+	-- 	yAlign = ui.Alignment.Center,
+	-- 	color = rgbm(1, 1, 1, 0.7),
+	-- })
+
+	for gear = 1, 8 do
+		local textColor = rgbm(1, 1, 1, 0.7)
+		local boxColor = rgbm(1, 0, 0, 1)
+
+		if gearsSynced[gear] then
+			textColor = rgbm(0, 0, 0, 1)
+			boxColor = syncedColor
+		end
+
+		display.rect({
+
+			pos = vec2(xPos, yPos),
+			size = vec2(60, 60),
+			color = boxColor,
+		})
+
+		if not gearsSynced[gear] then
+			synced = false
+
+			display.rect({
+
+				pos = vec2(xPos + 2, yPos + 2),
+				size = vec2(56, 56),
+				color = rgbm(0, 0, 0, 1),
+			})
+		end
+
+		drawText({
+			string = gear,
+			fontSize = 50,
+			xPos = xPos - 145,
+			yPos = yPos - 145,
+			xAlign = ui.Alignment.Center,
+			yAlign = ui.Alignment.Center,
+			color = textColor,
+		})
+
+		xPos = xPos + 60 + 5
+	end
+
+	ui.popDWriteFont()
+
+	return synced
+end
+
+function drawAntistall()
+	display.rect({
+		pos = vec2(0, 585),
+		size = vec2(1020, 150),
+		color = rgbm(0, 0, 0, 1),
+	})
+
+	display.rect({
+		pos = vec2(0, 575),
+		size = vec2(1020, 10),
+		color = rgbm(0.3, 0.3, 0.3, 1),
+	})
+
+	display.rect({
+		pos = vec2(0, 725),
+		size = vec2(1020, 10),
+		color = rgbm(0.3, 0.3, 0.3, 1),
+	})
+
+	ui.pushDWriteFont("Default;Weight=SemiBold")
+	drawText({
+		string = "ANTI-STALL",
+		fontSize = 150,
+		xPos = 0,
+		yPos = 370,
+		xAlign = ui.Alignment.Center,
+		yAlign = ui.Alignment.Center,
+		margin = vec2(1024, 550),
+		color = rgbm(1, 0, 0, 1),
 	})
 	ui.popDWriteFont()
 end
@@ -544,7 +650,7 @@ function drawErsBar(value, x, y, sizeX, sizeY, rotation, color1, color2)
 	ui.endRotation(rotation)
 end
 
-function drawBrakes(slow, x, y, xGap, yGap, xSize, ySize, coolColor, optimumColor, hotColor)
+function drawBrakes(sdata, x, y, xGap, yGap, xSize, ySize, coolColor, optimumColor, hotColor)
 	ui.pushDWriteFont("Default;Weight=Black")
 	local lowBrakeTemp = 250
 	local optimumBrakeTemp = 400
@@ -554,7 +660,7 @@ function drawBrakes(slow, x, y, xGap, yGap, xSize, ySize, coolColor, optimumColo
 		pos = vec2(x, y),
 		size = vec2(xSize, ySize),
 		color = optimumValueLerp(
-			slow.wheels[0].discTemperature,
+			sdata.wheels[0].discTemperature,
 			lowBrakeTemp,
 			optimumBrakeTemp,
 			highBrakeTemp,
@@ -569,7 +675,7 @@ function drawBrakes(slow, x, y, xGap, yGap, xSize, ySize, coolColor, optimumColo
 		pos = vec2(x + xGap, y + yGap),
 		size = vec2(xSize, ySize),
 		color = optimumValueLerp(
-			slow.wheels[2].discTemperature,
+			sdata.wheels[2].discTemperature,
 			lowBrakeTemp,
 			optimumBrakeTemp,
 			highBrakeTemp,
@@ -583,7 +689,7 @@ function drawBrakes(slow, x, y, xGap, yGap, xSize, ySize, coolColor, optimumColo
 	drawText({
 		string = "FRNT BRK",
 		fontSize = 25,
-		xPos = x - 103,
+		xPos = x - 111,
 		yPos = y - 158,
 		xAlign = ui.Alignment.Center,
 		yAlign = ui.Alignment.Center,
@@ -593,7 +699,7 @@ function drawBrakes(slow, x, y, xGap, yGap, xSize, ySize, coolColor, optimumColo
 	drawText({
 		string = "REAR BRK",
 		fontSize = 25,
-		xPos = x - 103,
+		xPos = x - 111,
 		yPos = y - 123,
 		xAlign = ui.Alignment.Center,
 		yAlign = ui.Alignment.Center,

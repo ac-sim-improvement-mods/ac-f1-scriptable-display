@@ -3,35 +3,39 @@
 
 require("src/formula_display")
 
+local sim = ac.getSim()
+
 local ext_car = ac.connect({
 	ac.StructItem.key(ac.getCarID(car.index) .. "_ext_car_" .. car.index),
 	connected = ac.StructItem.boolean(),
-	brakeBiasBase = ac.StructItem.float(),
-	brakeBiasFine = ac.StructItem.float(),
+	brakeBiasTotal = ac.StructItem.float(),
 	brakeMigration = ac.StructItem.float(),
-	brakeMigrationRamp = ac.StructItem.float(),
+	brakeMagic = ac.StructItem.boolean(),
 	diffModeCurrent = ac.StructItem.float(),
 	diffEntry = ac.StructItem.float(),
 	diffMid = ac.StructItem.float(),
 	diffExitHispd = ac.StructItem.float(),
 	diffMidHispdSwitch = ac.StructItem.boolean(),
+	engineAntistall = ac.StructItem.boolean(),
+	engineStalled = ac.StructItem.boolean(),
 }, true, ac.SharedNamespace.CarScript)
 
-local ext_config = ac.INIConfig.load(
+local extConfigINI = ac.INIConfig.load(
 	ac.getFolder(ac.FolderID.ContentCars) .. "\\" .. ac.getCarID(0) .. "\\extension\\ext_config.ini",
 	ac.INIFormat.ExtendedIncludes
 )
 
-local targetLaunchRPM = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "TARGET_LAUNCH_RPM", 0.5)
-local popupScreenTime = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "POPUP_TIME", 0.5)
-local initializationScreenTime = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "INITIALIZE_TIME", 2)
-local brightnessNight = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "BRIGHTNESS_NIGHT", 3)
-local brightnessNightNotFPV = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "BRIGHTNESS_NIGHT_NOT_FPV", 4)
-local brightnessDay = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "BRIGHTNESS_DAY", 4)
-local brightnessDayNotFPV = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "BRIGHTNESS_DAY_NOT_FPV", 0.5)
-local speedInKmh = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "SPEED_KMH", 1) == 1 and true or false
-local displayScale = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "DISPLAY_SCALE", 1)
-local displayBackgroundScale = ext_config:get("SCRIPTABLE_DISPLAY_CONFIG", "DISPLAY_BACKGROUND_SCALE", 1)
+local override = nil
+local targetLaunchRPM = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "TARGET_LAUNCH_RPM", 0.5)
+local popupScreenTime = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "POPUP_TIME", 0.5)
+local initializationScreenTime = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "INITIALIZE_TIME", 2)
+local brightnessNight = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "BRIGHTNESS_NIGHT", 3)
+local brightnessNightNotFPV = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "BRIGHTNESS_NIGHT_NOT_FPV", 4)
+local brightnessDay = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "BRIGHTNESS_DAY", 4)
+local brightnessDayNotFPV = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "BRIGHTNESS_DAY_NOT_FPV", 0.5)
+local speedInKmh = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "SPEED_KMH", 1) == 1 and true or false
+local displayScale = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "DISPLAY_SCALE", 1)
+local displayBackgroundScale = extConfigINI:get("SCRIPTABLE_DISPLAY_CONFIG", "DISPLAY_BACKGROUND_SCALE", 1)
 
 local stored = ac.storage({
 	activeDisplay = 1, -- Index of active display (starting with 1)
@@ -47,12 +51,13 @@ stored.initialized = false
 -- Display setup
 local displayColors = {
 	lightGreen = rgbm(0.45, 1, 0.45, 1),
+	gsiGreen = rgbm(0.4, 0.7, 0.1, 1),
 	activeGreen = rgbm(0, 0.6, 0.2, 1),
 	lightBlue = rgbm(0.2, 0.9, 1, 1),
 	coolBlue = rgbm(0, 0.1, 1, 1),
 	offWhite = rgbm(1, 1, 1, 0.7),
 	red = rgbm(1, 0, 0, 1),
-	warningYellow = rgbm(1, 1, 0.3, 1),
+	warningYellow = rgbm(1, 1, 0.1, 1),
 	bestPurple = rgbm(1, 0, 1, 1),
 	black = rgbm(0, 0, 0, 1),
 }
@@ -82,7 +87,7 @@ local backLight = backLightDay
 local backLightMesh = ac.findNodes("carsRoot:yes"):findMeshes("GEO_INT_Display")
 backLightMesh:setMaterialProperty("ksEmissive", backLight)
 
-local function updateDisplayBrightness(sim)
+local function updateDisplayBrightness()
 	local brightnessUpdated = false
 	local isNightTime = ac.getSunAngle() >= 90
 	local isFPVorF7 = sim.cameraMode == 0 or sim.cameraMode == 6
@@ -125,16 +130,12 @@ local delayFast = fastRefreshPeriod
 local delayFastest = fastestRefreshPeriod
 
 local mgukDeliveryShortNames = {
-	["NO DEPLOY"] = "NODLY",
-	["CHARGING"] = "CHRGE",
-	["LOW"] = "LOW",
-	["BALANCED LOW"] = "BALCD LOW",
-	["BALANCED"] = "BALCD",
-	["BALANCED HIGH"] = "BALCD HIGH",
-	["HIGH"] = "HIGH",
-	["OVERTAKE"] = "OVERTAKE",
-	["HOTLAP"] = "QUAL",
-	["ATTACK"] = ac.getSim().raceSessionType == 3 and "ATTCK" or "QUAL",
+	"NODLY",
+	"CHRGE",
+	"LOW",
+	"BALCD",
+	"HIGH",
+	sim.raceSessionType == 3 and "ATTCK" or "QUAL",
 }
 
 local fuel = {
@@ -143,9 +144,7 @@ local fuel = {
 	lapCount = car.lapCount,
 }
 
-local function updateData(dt, sim)
-	ac.log(string.upper(ac.getMGUKDeliveryName(car.index, car.mgukDelivery)))
-
+local function updateData(dt)
 	delaySlow = delaySlow + dt
 	if delaySlow > slowRefreshPeriod then
 		delaySlow = 0
@@ -191,20 +190,25 @@ local function updateData(dt, sim)
 			sdata.lastLapFuelUse = fuel.remaining - car.fuel
 			fuel.remaining = car.fuel
 		end
+		sdata.fuelPerLapNew = car.lapCount > 0 and (sdata.fuelPerLapNew + sdata.lastLapFuelUse) / 2 or 0
 		sdata.fuelPerLap = car.fuelPerLap == 0 and noDataString or string.format("%.2f", car.fuelPerLap)
 		sdata.targetFuelUse = sdata.sessionLaps == 0 and sdata.fuelPerLap
 			or string.format("%.2f", fuel.initial / sdata.sessionLaps)
 		sdata.lastLapFuelUse = sdata.lastLapFuelUse == noDataString and noDataString
 			or string.format("%.2f", sdata.lastLapFuelUse)
 		sdata.fuel = string.format("%.1f", car.fuel)
+		sdata.fuelLapsNew = sdata.fuelPerLapNew ~= 0 and string.format("%.1f", car.fuel / sdata.fuelPerLapNew)
+			or noDataString
+		sdata.fuelLaps = car.fuelPerLap == 0 and sdata.fuelLapsNew or string.format("%.1f", car.fuel / car.fuelPerLap)
 
+		sdata.engineAntistall = ext_car.engineAntistall
+		sdata.engineStalled = ext_car.engineStalled
 		sdata.compoundIndex = car.compoundIndex
 		sdata.compoundName = ac.getTyresName(car.index, car.compoundIndex)
 		sdata.currentEngineBrakeSetting = car.currentEngineBrakeSetting
 		sdata.mgukRecovery = car.mgukRecovery
 		sdata.mgukDelivery = car.mgukDelivery
-		sdata.mgukDeliveryName =
-			mgukDeliveryShortNames[string.upper(ac.getMGUKDeliveryName(car.index, car.mgukDelivery))]
+		sdata.mgukDeliveryName = mgukDeliveryShortNames[car.mgukDelivery + 1]
 		sdata.batteryCharge = math.round(car.kersCharge * 100, 0)
 		sdata.kersCharge = car.kersCharge
 		sdata.kersLoad = 1 - car.kersLoad
@@ -277,6 +281,9 @@ local function updateData(dt, sim)
 			)
 	)
 
+	sdata.brakeBiasTotal = ext_car.connected and string.format("%.1f", ext_car.brakeBiasTotal * 100)
+		or string.format("%.1f", car.brakeBias * 100)
+
 	sdata.brakeMigration = ext_car.brakeMigration + 1
 	sdata.differentialEntry = ext_car.connected and ext_car.diffEntry + 1 or 1
 	sdata.differentialMid = ext_car.connected and ext_car.diffMid + 1 or 4
@@ -290,7 +297,7 @@ end
 
 local mgukColor = {
 	NODLY = displayColors.offWhite,
-	CHRGE = displayColors.activeGreen,
+	CHRGE = displayColors.red,
 	LOW = displayColors.activeGreen,
 	BALCD = displayColors.activeGreen,
 	HIGH = displayColors.activeGreen,
@@ -298,17 +305,24 @@ local mgukColor = {
 	QUAL = displayColors.bestPurple,
 }
 
+local gearsSynced
+
 local function drawTopInfoBar()
 	drawValue(displayFont, sdata.racePosition, 75, 13, 305, ui.Alignment.Start)
-	drawValue(displayFont, sdata.poweredWheelsSpeed, 75, centerText, 305, ui.Alignment.Center)
 	drawValue(displayFont, sdata.lapCount, 75, 655, 305, ui.Alignment.End)
+
+	if not gearsSynced and sim.raceSessionType ~= 3 then
+		gearsSynced = drawGearSync(displayColors.activeGreen)
+	else
+		drawValue(displayFont, sdata.poweredWheelsSpeed, 75, centerText, 305, ui.Alignment.Center)
+	end
 end
 
 local function displayShared(image, drawExtra)
 	drawTopInfoBar()
 
-	drawErsBar(sdata.kersCharge, -218, 749, 495, 45, 180, displayColors.lightBlue)
-	drawErsBar(sdata.kersLoad, 746, 749, 495, 45, 180, displayColors.lightGreen)
+	drawErsBar(sdata.kersCharge, -218, 749, 495, 45, 180, displayColors.offWhite)
+	drawErsBar(sdata.kersLoad, 746, 749, 495, 45, 180, displayColors.gsiGreen)
 
 	ui.drawRectFilled(vec2(414, 796), vec2(608, 866), mgukColor[sdata.mgukDeliveryName])
 	drawValue(
@@ -329,7 +343,9 @@ local function displayShared(image, drawExtra)
 		ui.Alignment.Center,
 		sdata.batteryChargeColor
 	)
-	drawValue(displayFontSemiBold, sdata.mguhMode, 50, centerText + 33, 817, ui.Alignment.Center)
+
+	drawValue(displayFontSemiBold, sdata.mgukRecovery, 45, centerText - 55, 815, ui.Alignment.Center)
+	drawValue(displayFontSemiBold, sdata.mguhMode, 45, centerText + 33, 815, ui.Alignment.Center)
 
 	ui.setCursorY(441)
 	ui.setCursorX(2)
@@ -345,27 +361,31 @@ local function displayShared(image, drawExtra)
 		drawFlag()
 		drawTyreCoreTempGraphic(
 			sdata,
-			285,
-			823,
-			412,
-			91,
-			40,
-			80,
+			300,
+			796,
+			313,
+			114,
+			109,
+			109,
 			displayColors.coolBlue,
 			displayColors.activeGreen,
 			displayColors.red
 		)
-		drawTyreCoreTemp(sdata, displayFontSemiBold, 189, 683, 289, 95, 38, rgbm(1, 1, 1, 0.7))
+		drawTyreCoreTemp(sdata, displayFontBold, 175, 676, 311, 114, 50, rgbm(0, 0, 0, 1))
 	end
 
 	drawGear(sdata, centerText + 1, 470, 250)
+
+	if sdata.engineAntistall then
+		drawAntistall()
+	end
 end
 
 local displayWarmUpImage = ui.decodeImage(io.loadFromZip(ac.findFile("src/assets.zip"), "display_warmup.png"))
 local function displayWarmup(dt)
-	drawValue(displayFont, sdata.brakeBiasActual, 55, -55, 579, ui.Alignment.Center, rgbm(1, 0.5, 0, 0.9))
-	drawValue(displayFont, sdata.currentEngineBrakeSetting, 55, 56, 579, ui.Alignment.Center)
-	drawValue(displayFont, sdata.mgukRecovery, 55, 165, 579, ui.Alignment.Center)
+	drawValue(displayFont, sdata.brakeBiasTotal, 55, -55, 579, ui.Alignment.Center, rgbm(1, 0.5, 0, 0.9))
+	drawValue(displayFont, sdata.brakeMigration, 55, 56, 579, ui.Alignment.Center)
+	drawValue(displayFont, sdata.currentEngineBrakeSetting, 55, 165, 579, ui.Alignment.Center)
 
 	drawValue(displayFont, sdata.bestLapTimeMs, 70, 610, 388, ui.Alignment.End, rgbm(1, 0, 1, 0.7))
 	drawValue(displayFont, sdata.performanceMeter, 70, 610, 479, ui.Alignment.End, sdata.performanceColor)
@@ -375,11 +395,11 @@ local function displayWarmup(dt)
 	drawValue(displayFont, sdata.differentialMid, 55, 56, 398, ui.Alignment.Center)
 	drawValue(displayFont, sdata.differentialHispd, 55, 165, 398, ui.Alignment.Center)
 
-	drawValue(displayFontSemiBold, sdata.compoundName, 52, -152, 662, ui.Alignment.End)
-	drawValue(displayFont, sdata.currentTime, 52, 65, 805, ui.Alignment.Start, displayColors.warningYellow)
+	drawValue(displayFontSemiBold, sdata.compoundName, 52, -165, 662, ui.Alignment.End)
+	drawValue(displayFont, sdata.currentTime, 52, 57, 805, ui.Alignment.Start, displayColors.warningYellow)
 
-	drawBrakes(sdata, 57, 872, 0, 36, 142, 36, displayColors.coolBlue, displayColors.activeGreen, displayColors.red)
-	drawTyrePressure(sdata, displayFontSemiBold, 67, 683, 534, 95, 38)
+	drawBrakes(sdata, 57, 872, 0, 36, 128, 36, displayColors.coolBlue, displayColors.activeGreen, displayColors.red)
+	drawTyrePressure(sdata, displayFontBold, 68, 676, 533, 114, 50)
 
 	drawValue(displayFont, sdata.fuel, 52, 613, 662, ui.Alignment.End)
 	drawValue(displayFont, sdata.lastLapFuelUse, 52, 613, 737, ui.Alignment.End)
@@ -390,7 +410,7 @@ end
 
 local displayRaceImage = ui.decodeImage(io.loadFromZip(ac.findFile("src/assets.zip"), "display_race.png"))
 local function displayRace(dt)
-	drawValue(displayFont, sdata.brakeBiasActual, 65, 58, 590, ui.Alignment.Start, rgbm(1, 0.5, 0, 0.9))
+	drawValue(displayFont, sdata.brakeBiasTotal, 65, 58, 590, ui.Alignment.Start, rgbm(1, 0.5, 0, 0.9))
 	drawValue(
 		displayFont,
 		sdata.performanceMeterLastLap,
@@ -411,14 +431,17 @@ end
 
 local displayQualImage = ui.decodeImage(io.loadFromZip(ac.findFile("src/assets.zip"), "display_qual.png"))
 local function displayQual(dt)
-	drawValue(displayFont, sdata.brakeBiasActual, 65, 58, 680, ui.Alignment.Start, rgbm(1, 0.5, 0, 0.9))
-	drawValue(displayFont, sdata.currentTime, 65, 613, 680, ui.Alignment.End, displayColors.warningYellow)
+	drawValue(displayFont, sdata.brakeBiasTotal, 65, 58, 683, ui.Alignment.Start, rgbm(1, 0.5, 0, 0.9))
+	drawValue(displayFont, sdata.currentTime, 65, 58, 798, ui.Alignment.Start, displayColors.warningYellow)
 
 	drawValue(displayFont, sdata.bestLapTimeMs, 70, 610, 388, ui.Alignment.End, rgbm(1, 0, 1, 0.7))
 	drawValue(displayFont, sdata.previousLapTimeMs, 70, 610, 569, ui.Alignment.End, sdata.previousLapValidColor)
 
 	drawValue(displayFont, sdata.performanceMeter, 70, 50, 388, ui.Alignment.End, sdata.performanceColor)
 	drawValue(displayFont, sdata.performanceMeterLastLap, 70, 50, 569, ui.Alignment.End, sdata.performanceLastLapColor)
+
+	drawValue(displayFont, sdata.fuelLaps, 65, 608, 683, ui.Alignment.End)
+	drawValue(displayFont, math.round(sdata.kersLoad * 100), 65, 608, 798, ui.Alignment.End)
 
 	displayShared(displayQualImage, true)
 end
@@ -456,11 +479,11 @@ local function displayLaunch(dt)
 end
 
 local function displayBrakeBias(dt)
-	displayPopup(displayFontBold, 350, "BRK BIAS", string.format("%.1f", car.brakeBias * 100), rgbm(1, 0.5, 0, 0.9))
+	displayPopup(displayFontBold, 350, "BRK BIAS", string.format("%.1f", sdata.brakeBiasTotal), rgbm(1, 0.5, 0, 0.9))
 end
 
 local function displayMgukDelivery(dt)
-	local mgukDeliveryName = mgukDeliveryShortNames[string.upper(ac.getMGUKDeliveryName(car.index, car.mgukDelivery))]
+	local mgukDeliveryName = mgukDeliveryShortNames[car.mgukDelivery + 1]
 
 	displayPopup(
 		displayFontBold,
@@ -580,7 +603,7 @@ local function resetLastStates()
 end
 
 --- Switches to a temporary display if the conditions are met
-local function getDisplayMode(sim, forcedMode)
+local function getDisplayMode(forcedMode)
 	if forcedMode then
 		return forcedMode
 	end
@@ -720,7 +743,11 @@ function script.update(dt)
 
 	dt = dt * 3
 
-	local sim = ac.getSim()
+	local error = ac.getLastError()
+	if error then
+		ui.toast(ui.Icons.Warning, "[DISPLAY] AN ERROR HAS OCCURED")
+		ac.log(error)
+	end
 
 	updateData(dt, sim)
 	updateDisplayBrightness(sim)
@@ -729,6 +756,6 @@ function script.update(dt)
 	drawDisplayBackground(displaySize, backgroundColor)
 	ui.endScale(displayBackgroundScale)
 	ui.beginScale()
-	displays[getDisplayMode(sim)](dt)
+	displays[getDisplayMode(override)](dt)
 	ui.endScale(displayScale)
 end
