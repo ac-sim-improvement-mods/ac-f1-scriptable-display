@@ -125,16 +125,12 @@ local delayFast = fastRefreshPeriod
 local delayFastest = fastestRefreshPeriod
 
 local mgukDeliveryShortNames = {
-	["NO DEPLOY"] = "NODLY",
-	["CHARGING"] = "CHRGE",
-	["LOW"] = "LOW",
-	["BALANCED LOW"] = "BALCD LOW",
-	["BALANCED"] = "BALCD",
-	["BALANCED HIGH"] = "BALCD HIGH",
-	["HIGH"] = "HIGH",
-	["OVERTAKE"] = "OVERTAKE",
-	["HOTLAP"] = "QUAL",
-	["ATTACK"] = ac.getSim().raceSessionType == 3 and "ATTCK" or "QUAL",
+	"NODLY",
+	"CHRGE",
+	"LOW",
+	"BALCD",
+	"HIGH",
+	ac.getSim().raceSessionType == 3 and "ATTCK" or "QUAL",
 }
 
 local fuel = {
@@ -144,8 +140,6 @@ local fuel = {
 }
 
 local function updateData(dt, sim)
-	ac.log(string.upper(ac.getMGUKDeliveryName(car.index, car.mgukDelivery)))
-
 	delaySlow = delaySlow + dt
 	if delaySlow > slowRefreshPeriod then
 		delaySlow = 0
@@ -203,8 +197,7 @@ local function updateData(dt, sim)
 		sdata.currentEngineBrakeSetting = car.currentEngineBrakeSetting
 		sdata.mgukRecovery = car.mgukRecovery
 		sdata.mgukDelivery = car.mgukDelivery
-		sdata.mgukDeliveryName =
-			mgukDeliveryShortNames[string.upper(ac.getMGUKDeliveryName(car.index, car.mgukDelivery))]
+		sdata.mgukDeliveryName = mgukDeliveryShortNames[car.mgukDelivery + 1]
 		sdata.batteryCharge = math.round(car.kersCharge * 100, 0)
 		sdata.kersCharge = car.kersCharge
 		sdata.kersLoad = 1 - car.kersLoad
@@ -460,7 +453,7 @@ local function displayBrakeBias(dt)
 end
 
 local function displayMgukDelivery(dt)
-	local mgukDeliveryName = mgukDeliveryShortNames[string.upper(ac.getMGUKDeliveryName(car.index, car.mgukDelivery))]
+	local mgukDeliveryName = mgukDeliveryShortNames[car.mgukDelivery + 1]
 
 	displayPopup(
 		displayFontBold,
